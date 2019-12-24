@@ -128,17 +128,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\dimg\assets\libraries\Shader.cpp" />
+    <ClCompile Include="src\dimg\src\dimg.cpp" />
     <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\Shader.cpp" />
     <ClCompile Include="src\stb_image.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Shader.h" />
+    <ClInclude Include="src\dimg\assets\libraries\Shader.h" />
+    <ClInclude Include="src\dimg\src\dimg.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\basic.frag" />
     <None Include="assets\shaders\basic.vert" />
+    <None Include="assets\shaders\dsShader.frag" />
+    <None Include="assets\shaders\dsShader.vert" />
+    <None Include="src\dimg\shaders\negative\negative.frag" />
+    <None Include="src\dimg\shaders\negative\negative.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

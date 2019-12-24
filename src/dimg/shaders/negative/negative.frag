@@ -14,5 +14,5 @@ void main(){
 	vec3 negColor = vec3(1.0f-texColor.r,1.0f-texColor.g,1.0f-texColor.b);
 	float grayScale = dot(texColor, vec3(0.2989,0.5870,0.1140));
    // color = vec4(vec3(grayScale),1.0f);
-	color = vec4(negColor,1.0f);
+	color = vec4(vColor,1.0f);
 }
