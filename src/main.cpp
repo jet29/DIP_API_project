@@ -32,6 +32,7 @@ GLuint dsTexture;
 
 bool setFrameBuffer();
 std::string loadPath();
+std::string savePath();
 
 /**
  * Handles the window resize
@@ -196,13 +197,13 @@ unsigned int loadTexture(const char *path)
     return id;
 }
 
-void saveImage() {
+void saveImage(std::string path) {
 	GLubyte* pixels = new GLubyte[800 * 600 * 3];
 	glBindTexture(GL_TEXTURE_2D, dsTexture);
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 	// You have to use 3 comp for complete jpg file. If not, the image will be grayscale or nothing.
 	stbi_flip_vertically_on_write(true); // flag is non-zero to flip data vertically
-	stbi_write_jpg("zelda.jpg", 800, 600, 3, pixels, 100);
+	stbi_write_jpg(path.c_str(), 800, 600, 3, pixels, 100);
 }
 
 
@@ -271,7 +272,7 @@ void processKeyboardInput(GLFWwindow *window)
 	// Save current image
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 	{
-		saveImage();
+		saveImage(savePath());
 	}
 }
 
@@ -290,6 +291,27 @@ std::string loadPath()
 	ofn.lpstrTitle = "Select an image";
 	std::string fileNameStr;
 	if (GetOpenFileName(&ofn)) {
+		fileNameStr = fileName;
+	}
+	std::cout << fileNameStr << std::endl;
+	return fileNameStr;
+}
+
+std::string savePath()
+{
+	OPENFILENAME ofn;
+	char fileName[MAX_PATH] = "";
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(OPENFILENAME);
+	ofn.hwndOwner = NULL;
+	ofn.lpstrFilter = "JPG Files(.jpg)\0*.jpg\0PNG Files(.png)\0*.png\0JPEG Files(.jpeg)\0*.jpeg;";
+	ofn.lpstrFile = fileName;
+	ofn.nMaxFile = MAX_PATH;
+	ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+	ofn.lpstrDefExt = "";
+	ofn.lpstrTitle = "Save image as...";
+	std::string fileNameStr;
+	if (GetSaveFileNameA(&ofn)) {
 		fileNameStr = fileName;
 	}
 	std::cout << fileNameStr << std::endl;
