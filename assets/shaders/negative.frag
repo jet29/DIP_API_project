@@ -10,5 +10,7 @@ uniform sampler2D image;
 out vec4 color;
 
 void main(){
-    color = vec4(texture(image,vTexPos));
+	vec3 texColor = texture(image,vTexPos).xyz;
+	vec3 negColor = vec3(1.0f-texColor.r,1.0f-texColor.g,1.0f-texColor.b);
+	color = vec4(negColor,1.0f);
 }

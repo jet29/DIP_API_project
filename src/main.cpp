@@ -3,8 +3,11 @@
 #include <glm/glm.hpp>
 #include <iostream>
 #include <stb_image.h>
-
+#include <Commdlg.h>
 #include "Shader.h"
+#define STBI_MSC_SECURE_CRT
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
 // Window current width
 unsigned int windowWidth = 800;
@@ -16,13 +19,19 @@ const char *windowTitle = "Basic Demo";
 GLFWwindow *window;
 
 // Shader object
-Shader *shader;
+Shader *shader, *negative, *grayscale, *blackandwhite;
 // Index (GPU) of the geometry buffer
 unsigned int VBO;
 // Index (GPU) vertex array object
 unsigned int VAO;
 // Index (GPU) of the texture
-unsigned int textureID;
+unsigned int textureID, imageID;
+// Deferred shading textures, buffers
+GLuint framebuffer, depthBuffer;
+GLuint dsTexture;
+
+bool setFrameBuffer();
+std::string loadPath();
 
 /**
  * Handles the window resize
@@ -102,44 +111,39 @@ void initGL()
  * loads them up into the GPU
  * (Builds a simple triangle)
  * */
+
 void buildGeometry()
 {
-    float triangleVertices[] = {
-        // Bottom left vertex
-        -0.5f, -0.5f, 0.0f, // Position
-        1.0f, 0.0f, 0.0f,   // Color
-        // Bottom right vertex
-        0.5f, -0.5f, 0.0f, // Position
-        0.0f, 1.0f, 0.0f,  // Color
-        // Top Center vertex
-        0.0f, 0.5f, 0.0f, // Position
-        0.0f, 0.0f, 1.0f  // Color
-
-    };
-    // Creates on GPU the vertex array
-    glGenVertexArrays(1, &VAO);
-    // Creates on GPU the vertex buffer object
-    glGenBuffers(1, &VBO);
-    // Binds the vertex array to set all the its properties
-    glBindVertexArray(VAO);
-    // Sets the buffer geometry data
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), &triangleVertices, GL_STATIC_DRAW);
-
-    // Sets the vertex attributes
-    // Position
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
-    // Color
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
-    glBindVertexArray(0);
+	// Quad for debug purposes:
+	float quadVertices[] = {
+		// positions        // Color   		   // texture Coords
+		-1.0f,  1.0f, 0.0f, 1.0f, 0.0f, 0.0f,  0.0f, 1.0f,
+		-1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,  0.0f, 0.0f,
+		 1.0f,  1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
+		 1.0f, -1.0f, 0.0f, 0.5f, 0.5f, 0.75f, 1.0f, 0.0f,
+	};
+	// Setup plane VAO
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+	// Position
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	// Color
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	// Texture Coords
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
 }
 /**
  * Loads a texture into the GPU
  * @param{const char} path of the texture file
  * @returns{unsigned int} GPU texture index
  * */
+
 unsigned int loadTexture(const char *path)
 {
     unsigned int id;
@@ -191,6 +195,17 @@ unsigned int loadTexture(const char *path)
 
     return id;
 }
+
+void saveImage() {
+	GLubyte* pixels = new GLubyte[800 * 600 * 3];
+	glBindTexture(GL_TEXTURE_2D, dsTexture);
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+	// You have to use 3 comp for complete jpg file. If not, the image will be grayscale or nothing.
+	stbi_flip_vertically_on_write(true); // flag is non-zero to flip data vertically
+	stbi_write_jpg("zelda.jpg", 800, 600, 3, pixels, 100);
+}
+
+
 /**
  * Initialize everything
  * @returns{bool} true if everything goes ok
@@ -198,7 +213,7 @@ unsigned int loadTexture(const char *path)
 bool init()
 {
     // Initialize the window, and the glad components
-    if (!initWindow() || !initGlad())
+    if (!initWindow() || !initGlad() || !setFrameBuffer())
         return false;
 
     // Initialize the opengl context
@@ -206,10 +221,15 @@ bool init()
 
     // Loads the shader
     shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+	negative = new Shader("assets/shaders/negative.vert", "assets/shaders/negative.frag");
+	grayscale = new Shader("assets/shaders/grayscale.vert", "assets/shaders/grayscale.frag");
+	blackandwhite = new Shader("assets/shaders/blackandwhite.vert", "assets/shaders/blackandwhite.frag");
+
     // Loads all the geometry into the GPU
     buildGeometry();
     // Loads the texture into the GPU
     textureID = loadTexture("assets/textures/bricks2.jpg");
+	imageID = loadTexture("assets/images/zelda.jpg");
 
     return true;
 }
@@ -219,6 +239,7 @@ bool init()
  * the GLFW API, check the GLFW documentation to find more
  * @param{GLFWwindow} window pointer
  * */
+
 void processKeyboardInput(GLFWwindow *window)
 {
     // Checks if the escape key is pressed
@@ -231,27 +252,136 @@ void processKeyboardInput(GLFWwindow *window)
     {
         // Reloads the shader
         delete shader;
-        shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+		delete negative;
+		delete grayscale;
+		delete blackandwhite;
+
+		shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+		negative = new Shader("assets/shaders/negative.vert", "assets/shaders/negative.frag");
+		grayscale = new Shader("assets/shaders/grayscale.vert", "assets/shaders/grayscale.frag");
+		blackandwhite = new Shader("assets/shaders/blackandwhite.vert", "assets/shaders/blackandwhite.frag");
     }
+
+	// Load a new image
+	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
+	{
+		imageID = loadTexture(loadPath().c_str());
+	}
+
+	// Save current image
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+	{
+		saveImage();
+	}
 }
+
+std::string loadPath()
+{
+	OPENFILENAME ofn;
+	char fileName[MAX_PATH] = "";
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(OPENFILENAME);
+	ofn.hwndOwner = NULL;
+	ofn.lpstrFilter = "JPG Files(.jpg)\0*.jpg\0PNG Files(.png)\0*.png\0JPEG Files(.jpeg)\0*.jpeg;";
+	ofn.lpstrFile = fileName;
+	ofn.nMaxFile = MAX_PATH;
+	ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+	ofn.lpstrDefExt = "";
+	ofn.lpstrTitle = "Select an image";
+	std::string fileNameStr;
+	if (GetOpenFileName(&ofn)) {
+		fileNameStr = fileName;
+	}
+	std::cout << fileNameStr << std::endl;
+	return fileNameStr;
+}
+
+void getNegative() {
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	// Clears the color and depth buffers from the frame buffer
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	/** Draws code goes here **/
+	// Use the shader
+	negative->use();
+	// Send image to GPU
+	negative->setInt("image", 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, imageID);
+	// Binds the vertex array to be drawn
+	glBindVertexArray(VAO);
+	// Renders the triangle gemotry
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+}
+
+void getGrayscale() {
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	// Clears the color and depth buffers from the frame buffer
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	/** Draws code goes here **/
+	// Use the shader
+	grayscale->use();
+	// Send image to GPU
+	grayscale->setInt("image", 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, imageID);
+	// Binds the vertex array to be drawn
+	glBindVertexArray(VAO);
+	// Renders the triangle gemotry
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+}
+
+void getBlackAndWhite() {
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	// Clears the color and depth buffers from the frame buffer
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	/** Draws code goes here **/
+	// Use the shader
+	blackandwhite->use();
+	// Send image to GPU
+	blackandwhite->setInt("image", 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, imageID);
+	// Binds the vertex array to be drawn
+	glBindVertexArray(VAO);
+	// Renders the triangle gemotry
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+}
+
+
+
 /**
  * Render Function
  * */
 void render()
 {
-    // Clears the color and depth buffers from the frame buffer
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	// Compute image's negative
+	//getNegative();
+	// Compute image's grayscale
+	//getGrayscale();
+	// Compute image's black and white
+	getBlackAndWhite();
+	///* RENDER NEGATIVE IMAGE TO TEXTURE */
 
-    /** Draws code goes here **/
-    // Use the shader
-    shader->use();
-    // Binds the vertex array to be drawn
-    glBindVertexArray(VAO);
-    // Renders the triangle gemotry
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    glBindVertexArray(0);
-    // Swap the buffer
-    glfwSwapBuffers(window);
+	/* RENDER IMAGE */
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	// Use the shader
+	shader->use();
+	shader->setInt("image", 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, dsTexture);
+	//Draw QUAD for debug purposes
+	//Binds the vertex array to be drawn
+	glBindVertexArray(VAO);
+	// Renders the triangle geometry
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+
+	// Swap the buffer
+	glfwSwapBuffers(window);
 }
 /**
  * App main loop
@@ -271,6 +401,43 @@ void update()
         glfwPollEvents();
     }
 }
+
+bool setFrameBuffer() {
+	glGenFramebuffers(1, &framebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+	// The texture we're going to render to
+	glGenTextures(1, &dsTexture);
+	// "Bind" the newly created texture : all future texture functions will modify this texture
+	glBindTexture(GL_TEXTURE_2D, dsTexture);
+
+	// Give an empty image to OpenGL (Which is done with last "0")
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	// Depth buffer
+	glGenRenderbuffers(1, &depthBuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, windowWidth, windowHeight);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);
+
+	// Frame buffer configuration
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, dsTexture, 0);
+
+	// Set list of draw buffers
+	GLenum DrawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+	glDrawBuffers(1, DrawBuffers);
+
+	// Always check that our framebuffer is ok
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "ERROR::Framebuffer configuration went wrong" << std::endl;
+		return false;
+	}
+	return true;
+}
+
 /**
  * App starting point
  * @param{int} number of arguments
@@ -293,7 +460,6 @@ int main(int argc, char const *argv[])
 
     // Starts the app main loop
     update();
-
     // Deletes the texture from the gpu
     glDeleteTextures(1, &textureID);
     // Deletes the vertex array from the GPU

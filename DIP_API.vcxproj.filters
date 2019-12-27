@@ -21,6 +21,24 @@
     <None Include="assets\shaders\basic.frag">
       <Filter>shaders</Filter>
     </None>
+    <None Include="assets\shaders\negative.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\negative.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\blackandwhite.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\blackandwhite.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\grayscale.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\grayscale.vert">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">

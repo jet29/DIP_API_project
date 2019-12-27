@@ -10,5 +10,7 @@ uniform sampler2D image;
 out vec4 color;
 
 void main(){
-    color = vec4(texture(image,vTexPos));
+	vec3 texColor = texture(image,vTexPos).xyz;
+	float grayScale = dot(texColor, vec3(0.2989,0.5870,0.1140));
+    color = vec4(vec3(grayScale),1.0f);
 }
