@@ -19,7 +19,8 @@ const char *windowTitle = "Basic Demo";
 GLFWwindow *window;
 
 // Shader object
-Shader *shader, *negative, *grayscale, *blackandwhite;
+Shader *shader, *negative, *grayscale, *blackandwhite,
+	   *kernelTest, *sobel;
 // Index (GPU) of the geometry buffer
 unsigned int VBO;
 // Index (GPU) vertex array object
@@ -225,8 +226,10 @@ bool init()
 	negative = new Shader("assets/shaders/negative.vert", "assets/shaders/negative.frag");
 	grayscale = new Shader("assets/shaders/grayscale.vert", "assets/shaders/grayscale.frag");
 	blackandwhite = new Shader("assets/shaders/blackandwhite.vert", "assets/shaders/blackandwhite.frag");
-
-    // Loads all the geometry into the GPU
+	//kernelTest = new Shader("assets/shaders/kernelTest.vert", "assets/shaders/kernelTest.frag");
+	sobel = new Shader("assets/shaders/sobel.vert", "assets/shaders/sobel.frag");
+    
+	// Loads all the geometry into the GPU
     buildGeometry();
     // Loads the texture into the GPU
     textureID = loadTexture("assets/textures/bricks2.jpg");
@@ -256,12 +259,16 @@ void processKeyboardInput(GLFWwindow *window)
 		delete negative;
 		delete grayscale;
 		delete blackandwhite;
+		//delete kernelTest;
+		delete sobel;
 
 		shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
 		negative = new Shader("assets/shaders/negative.vert", "assets/shaders/negative.frag");
 		grayscale = new Shader("assets/shaders/grayscale.vert", "assets/shaders/grayscale.frag");
 		blackandwhite = new Shader("assets/shaders/blackandwhite.vert", "assets/shaders/blackandwhite.frag");
-    }
+		//kernelTest = new Shader("assets/shaders/kernelTest.vert", "assets/shaders/kernelTest.frag");
+		sobel = new Shader("assets/shaders/sobel.vert", "assets/shaders/sobel.frag");
+	}
 
 	// Load a new image
 	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
@@ -372,6 +379,42 @@ void getBlackAndWhite() {
 	glBindVertexArray(0);
 }
 
+void getKernelTest() {
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	// Clears the color and depth buffers from the frame buffer
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	/** Draws code goes here **/
+	// Use the shader
+	kernelTest->use();
+	// Send image to GPU
+	kernelTest->setInt("image", 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, imageID);
+	// Binds the vertex array to be drawn
+	glBindVertexArray(VAO);
+	// Renders the triangle gemotry
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+}
+
+void getSobel() {
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	// Clears the color and depth buffers from the frame buffer
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	/** Draws code goes here **/
+	// Use the shader
+	sobel->use();
+	// Send image to GPU
+	sobel->setInt("image", 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, imageID);
+	// Binds the vertex array to be drawn
+	glBindVertexArray(VAO);
+	// Renders the triangle gemotry
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+}
+
 
 
 /**
@@ -384,7 +427,9 @@ void render()
 	// Compute image's grayscale
 	//getGrayscale();
 	// Compute image's black and white
-	getBlackAndWhite();
+	//getBlackAndWhite();
+	//getKernelTest();
+	getSobel();
 	///* RENDER NEGATIVE IMAGE TO TEXTURE */
 
 	/* RENDER IMAGE */

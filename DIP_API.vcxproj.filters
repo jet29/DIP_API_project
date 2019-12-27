@@ -39,6 +39,18 @@
     <None Include="assets\shaders\grayscale.vert">
       <Filter>shaders</Filter>
     </None>
+    <None Include="assets\shaders\kernelTest.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\kernelTest.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\sobel.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\sobel.vert">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">

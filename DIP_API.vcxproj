@@ -143,8 +143,12 @@
     <None Include="assets\shaders\blackandwhite.vert" />
     <None Include="assets\shaders\grayscale.frag" />
     <None Include="assets\shaders\grayscale.vert" />
+    <None Include="assets\shaders\kernelTest.frag" />
+    <None Include="assets\shaders\kernelTest.vert" />
     <None Include="assets\shaders\negative.frag" />
     <None Include="assets\shaders\negative.vert" />
+    <None Include="assets\shaders\sobel.frag" />
+    <None Include="assets\shaders\sobel.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
