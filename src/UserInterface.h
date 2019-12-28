@@ -1,4 +1,5 @@
 #pragma once
+#include "dimg.h"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_glfw.h"
 #include "ImGui/imgui_impl_opengl3.h"
@@ -12,6 +13,8 @@ public:
 	bool initImGui(GLFWwindow* window);
 	void ImGuiDraw();
 	void ImGuiTerminate();
+	static int listbox_item_current;
+	static int kernelwidth, kernelheight;
 private:
 	
 };

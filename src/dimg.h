@@ -23,12 +23,12 @@ using std::vector;
 class DIMG{
 private:
 	
-	vector<int> mat;
-	GLuint matTex;
+	vector<int> kernelData;
+	GLuint kernel;
 	int currentShader;
 	glm::ivec2 size;
 	// PRIVATE FUNCTIONS
-	void setMatText();
+	void setKernel();
 public:
 	Shader *shader;
 	DIMG();
@@ -42,6 +42,8 @@ public:
 	 *
 	 * */
 	void setKernelSize(int h, int w);
+
+	glm::ivec2 getKernelSize();
 
 	/** 
 	 * Overloaded function

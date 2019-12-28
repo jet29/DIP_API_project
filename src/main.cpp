@@ -21,6 +21,10 @@ void onKeyPressCallback(GLFWwindow* window, int key, int scancode, int action, i
 			glDeleteTextures(1, &imageID);
 			api.loadImage();
 			break;
+		case GLFW_KEY_T:
+			std::cout << "Tecnica: " << UI::listbox_item_current << std::endl;
+			//ImGui::ShowDemoWindow();
+			break;
 		}
 	}
 }
@@ -137,6 +141,10 @@ void processKeyboardInput(GLFWwindow *window)
 	{
 		api.saveImage(dsTexture);
 	}
+	if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS)
+	{
+		printf("kernel: (%i,%i)\n", UI::kernelheight, UI::kernelwidth);
+	}
 }
 
 void renderToTexture(){
@@ -145,7 +153,38 @@ void renderToTexture(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	/** Draws code goes here **/
 	// Use the shader
-	api.negative(imageID);
+	switch (UI::listbox_item_current) {
+	case REGULAR: 
+		api.color(imageID);
+		break;
+	case NEGATIVE: 
+		api.negative(imageID);
+		break;
+	case GRAYSCALE: 
+		api.grayscale(imageID);
+		break;
+	case BLACKANDWHITE:
+		api.blackandwhite(imageID);
+		break;
+	case SOBEL:
+		api.sobel(imageID);
+		break;
+	case ROBERTS:
+		api.roberts(imageID);
+		break;
+	case PREWITT:
+		api.prewitt(imageID);
+		break;
+	case MEAN:
+		api.mean(imageID);
+		break;
+	case MEDIAN:
+		api.median(imageID);
+		break;
+	case GAUSSIAN:
+		api.gaussianLaplace(imageID);
+		break;
+	}
 	// Binds the vertex array to be drawn
 	glBindVertexArray(VAO);
 	// Render triangle's geometry
@@ -184,6 +223,11 @@ void render()
 	glfwSwapBuffers(window);
 }
 
+void updateFromInterface() {
+	if (api.getKernelSize() != glm::ivec2(UI::kernelheight,UI::kernelwidth))
+		api.setKernelSize(UI::kernelheight, UI::kernelwidth);
+}
+
 void update()
 {
     // Loop until something tells the window, that it has to be closed
@@ -197,6 +241,9 @@ void update()
 
 		// Check and call events
         glfwPollEvents();
+
+		// Update values
+		updateFromInterface();
     }
 }
 
@@ -212,6 +259,8 @@ bool setFrameBuffer() {
 	// Give an empty image to OpenGL (Which is done with last "0")
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 

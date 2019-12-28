@@ -57,6 +57,8 @@
     <None Include="assets\shaders\sobel.vert">
       <Filter>shaders</Filter>
     </None>
+    <None Include="assets\shaders\mean.frag" />
+    <None Include="assets\shaders\mean.vert" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">

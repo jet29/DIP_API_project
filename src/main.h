@@ -6,6 +6,8 @@
 #include "Shader.h"
 #include "UserInterface.h"
 
+typedef enum {REGULAR,NEGATIVE,GRAYSCALE,BLACKANDWHITE,SOBEL,ROBERTS,PREWITT,MEAN,MEDIAN,GAUSSIAN} techniques;
+
 DIMG api;
 UI *ui;
 // Window current width
