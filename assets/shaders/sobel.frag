@@ -5,6 +5,7 @@ in vec3 vColor;
 in vec2 vTexPos;
 // texture
 uniform sampler2D image;
+uniform isampler2D matrix;
 
 // Fragment Color
 out vec4 color;
@@ -14,10 +15,10 @@ void main(){
 	ivec2 texSize  = textureSize(image, 0);
 	ivec2 texIndex = ivec2(vTexPos.xy * vec2(texSize.xy));
 	vec3 sobel    = vec3(0.0f);
-	mat3 sobelMat = mat3(-1,-2,-1,0,0,0,1,2,1);
+	// Kernel application
 	for (int i=-1 ;i<=1;i++){
 		for (int j=-1 ; j<=1;j++){
-			sobel += texelFetch(image, texIndex + ivec2(i, j), 0).xyz * sobelMat[i+1][j+1];
+			sobel += texelFetch(image, texIndex + ivec2(i, j), 0).xyz * texelFetch(matrix, ivec2(0,0),0).r;
 		}
 	}
 	color = vec4(sobel,1.0f);

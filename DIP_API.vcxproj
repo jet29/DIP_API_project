@@ -128,13 +128,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\dimg.cpp" />
     <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Shader.cpp" />
     <ClCompile Include="src\stb_image.cpp" />
+    <ClCompile Include="src\UserInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\dimg.h" />
+    <ClInclude Include="src\main.h" />
     <ClInclude Include="src\Shader.h" />
+    <ClInclude Include="src\UserInterface.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\basic.frag" />
