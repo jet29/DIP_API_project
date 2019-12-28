@@ -8,6 +8,23 @@ void resize(GLFWwindow *window, int width, int height)
     glViewport(0, 0, windowWidth, windowHeight);
 }
 
+void onKeyPressCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	if (action == GLFW_PRESS) {
+		switch (key) {
+		case GLFW_KEY_R:
+			// Reloads the shader
+			delete shader;
+			shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+			api.reloadShader();
+			break;
+		case GLFW_KEY_L:
+			glDeleteTextures(1, &imageID);
+			api.loadImage();
+			break;
+		}
+	}
+}
+
 bool initWindow(){
     // Initialize glfw
     glfwInit();
@@ -32,7 +49,8 @@ bool initWindow(){
 
     // Window resize callback
     glfwSetFramebufferSizeCallback(window, resize);
-
+	// Window keys callback
+	glfwSetKeyCallback(window, onKeyPressCallback);
     return true;
 }
 
@@ -114,23 +132,6 @@ void processKeyboardInput(GLFWwindow *window)
         // Tells glfw to close the window as soon as possible
         glfwSetWindowShouldClose(window, true);
 
-    // Checks if the r key is pressed
-    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
-    {
-        // Reloads the shader
-        delete shader;
-		shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
-		api.reloadShader();
-	}
-
-	// Load a new image
-	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
-	{
-		glDeleteTextures(1, &imageID);
-		imageID = api.loadImage();
-		std::cout << imageID << std::endl;
-	}
-
 	// Save current image
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 	{
@@ -160,8 +161,7 @@ void forwardRendering() {
 	shader->use();
 	shader->setInt("image", 0);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, imageID);
-	//Draw QUAD for debug purposes
+	glBindTexture(GL_TEXTURE_2D, dsTexture);
 	//Binds the vertex array to be drawn
 	glBindVertexArray(VAO);
 	// Renders the triangle geometry

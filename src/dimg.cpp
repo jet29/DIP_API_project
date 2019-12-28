@@ -11,7 +11,6 @@ DIMG::DIMG(){
 	size = glm::ivec2(3);
 }
 
-
 DIMG::~DIMG(){
 }
 
@@ -314,7 +313,7 @@ std::string DIMG::loadPath(){
 	ofn.lpstrFilter = "JPG Files(.jpg)\0*.jpg\0PNG Files(.png)\0*.png\0JPEG Files(.jpeg)\0*.jpeg;";
 	ofn.lpstrFile = fileName;
 	ofn.nMaxFile = MAX_PATH;
-	ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+	ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_NOCHANGEDIR;
 	ofn.lpstrDefExt = "";
 	ofn.lpstrTitle = "Select an image";
 	std::string fileNameStr;

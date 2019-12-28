@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <Commdlg.h>
+
 using std::vector;
 
 #define DIMG_COLOR 0x00100
@@ -21,7 +22,7 @@ using std::vector;
 
 class DIMG{
 private:
-	Shader *shader;
+	
 	vector<int> mat;
 	GLuint matTex;
 	int currentShader;
@@ -29,7 +30,7 @@ private:
 	// PRIVATE FUNCTIONS
 	void setMatText();
 public:
-
+	Shader *shader;
 	DIMG();
 	~DIMG();
 	/**
