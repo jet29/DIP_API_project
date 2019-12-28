@@ -60,12 +60,13 @@ void initGL()
 }
 
 bool initImGui() {
+
 	IMGUI_CHECKVERSION();
-	//ImGui::CreateContext();
-	//ImGuiIO &io = ImGui::GetIO();
-	//ImGui::StyleColorsDark();
-	//ImGui_ImplGlfw_InitForOpenGL(window, true);
-	//ImGui_ImplOpenGL3_Init("#version 330 core");
+	ImGui::CreateContext();
+	ImGuiIO &io = ImGui::GetIO();
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init("#version 330 core");
+	ImGui::StyleColorsDark();
 
 	return true;
 }
@@ -152,7 +153,7 @@ unsigned int loadTexture(const char *path)
 bool init()
 {
     // Initialize the window, and the glad components
-    if (!initWindow() || !initGlad() || !setFrameBuffer() /*|| !initATB())*/)
+    if (!initWindow() || !initGlad() || !setFrameBuffer() || !initImGui()/*|| !initATB())*/)
         return false;
 
     // Initialize the opengl context
@@ -236,7 +237,7 @@ void render()
 	glBindVertexArray(0);
 
 	// Swap the buffer
-	glfwSwapBuffers(window);
+	//glfwSwapBuffers(window);
 }
 
 /**
@@ -250,20 +251,28 @@ void update()
         // Checks for keyboard inputs
         processKeyboardInput(window);
 
+
+		// feed inputs to dear imgui, start new frame
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
         // Renders everything
         render();
 
-		//// Draw the ImGui
-		//ImGui::Begin("Demo window");
-		//ImGui::Button("Hello!");
-		//ImGui::End();
+		// Draw the ImGui
+		ImGui::Begin("Demo window");
+		ImGui::Button("Hello!");
+		ImGui::End();
 
-		//// Render dear imgui into screen
-		//ImGui::Render();
-		//ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		// Render dear imgui into screen
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         // Check and call events
         glfwPollEvents();
+
+		glfwSwapBuffers(window);
     }
 }
 
@@ -343,6 +352,11 @@ int main(int argc, char const *argv[])
     glfwTerminate();
 	// Terminate AntTweakBar
 	TwTerminate();
+
+	// Terminate IMGUI
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
 
     return 0;
 }
