@@ -10,9 +10,6 @@
     <ClCompile Include="src\Shader.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\stb_image.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="src\dimg.cpp" />
     <ClCompile Include="src\UserInterface.cpp" />
     <ClCompile Include="src\ImGui\imgui.cpp" />
@@ -21,6 +18,7 @@
     <ClCompile Include="src\ImGui\imgui_impl_glfw.cpp" />
     <ClCompile Include="src\ImGui\imgui_impl_opengl3.cpp" />
     <ClCompile Include="src\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="src\stb_image.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\basic.vert">

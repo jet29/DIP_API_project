@@ -3,10 +3,8 @@
 #include <iostream>
 #include <glad/glad.h>
 #include <vector>
-#include <stb_image.h>
+#include <string>
 #include <Commdlg.h>
-
-
 using std::vector;
 
 #define DIMG_COLOR 0x00100
@@ -34,7 +32,35 @@ public:
 
 	DIMG();
 	~DIMG();
+	/**
+	 *
+	 * */
 	void reloadShader();
+
+	/**
+	 *
+	 * */
+	void setKernelSize(int h, int w);
+
+	/** 
+	 * Overloaded function
+	 * Loads an image as a texture into the GPU
+	 * @returns{unsigned int} GPU texture index
+	 * */
+	GLuint loadImage();
+
+	/**
+	 * Overloaded function
+	 * Loads an image as a texture into the GPU
+	 * @param{const char} path of the texture file
+	 * @returns{unsigned int} GPU texture index
+	 * */
+	GLuint loadImage(const char* path);
+	
+	/**
+	 *
+	 * */
+	void saveImage(GLuint image);
 
 	/**
 	 *
@@ -87,15 +113,16 @@ public:
 	 * @param{GLuint} destiny image
 	 * */
 	void color(GLuint image);
+	
+	/**
+	 *
+	 * */
+	std::string loadPath();
 
 	/**
 	 *
 	 * */
-	void setKernelSize(int h, int w);
-
-	std::string loadPath();
-
 	std::string savePath();
 
-	//void saveImage(GLuint image);
+
 };	

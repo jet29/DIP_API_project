@@ -1,17 +1,10 @@
-
 #include <glad/glad.h> // Glad has to be include before glfw
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <iostream>
+#include "dimg.h"
 #include "Shader.h"
-#include "DIMG.h"
 #include "UserInterface.h"
-#include "ImGui/imgui.h"
-#include "ImGui/imgui_impl_glfw.h"
-#include "ImGui/imgui_impl_opengl3.h"
-
-
-#define px(x) x * ( windowWidth / windowHeight )
 
 DIMG api;
 UI *ui;
@@ -69,13 +62,6 @@ void initGL();
 void buildGeometry();
 
 /**
- * Loads a texture into the GPU
- * @param{const char} path of the texture file
- * @returns{unsigned int} GPU texture index
- * */
-unsigned int loadTexture(const char *path);
-
-/**
  * Initialize everything
  * @returns{bool} true if everything goes ok
  * */
@@ -88,6 +74,17 @@ bool init();
  * @param{GLFWwindow} window pointer
  * */
 void processKeyboardInput(GLFWwindow *window);
+
+/**
+ * Render Function using Deferred shading
+ * it changes default framebuffer for a custom one
+ * */
+void renderToTexture();
+
+/**
+ * Default OpenGL Render
+ * */
+void forwardRendering();
 
 /**
  * Render Function
