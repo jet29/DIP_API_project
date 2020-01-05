@@ -147,8 +147,8 @@ GLuint DIMG::loadImage(const char* path) {
 		glGenerateMipmap(GL_TEXTURE_2D);
 
 		// Set the filtering parameters
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	}
@@ -268,7 +268,7 @@ void DIMG::mean(GLuint image) {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image);
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, kernel);
+	glBindTexture(GL_TEXTURE_1D, kernel);
 }
 
 void DIMG::median(GLuint image) {
@@ -301,7 +301,7 @@ void DIMG::gaussianLaplace(GLuint image) {
 
 void DIMG::setKernel(){
 	// Tamaño de la matriz en size
-	kernelData = vector<int>(49, 1);
+	kernelData = vector<int>(49, 0);
 	// Media
 	for (int i = 0; i < size.x; i++){
 		for (int j = 0; j < size.y; j++) {
@@ -311,13 +311,14 @@ void DIMG::setKernel(){
 		}
 	}
 	glGenTextures(1, &kernel);
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, kernel);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32I, 7, 7, 0, GL_RED_INTEGER, GL_INT, kernelData.data());
+	glBindTexture(GL_TEXTURE_1D, kernel);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32I, 49, 0, GL_RED_INTEGER, GL_INT, kernelData.data());
+	glBindTexture(GL_TEXTURE_1D, 0);
 }
 
 std::string DIMG::loadPath(){

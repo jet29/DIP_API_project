@@ -5,7 +5,7 @@ in vec3 vColor;
 in vec2 vTexPos;
 // texture
 uniform sampler2D image;
-uniform isampler2D kernel;
+uniform isampler1D kernel;
 uniform int kWidth;
 uniform int kHeight;
 
@@ -20,7 +20,7 @@ void main(){
 	// Kernel application
 	for (int i=0 ;i<=kWidth;i++){
 		for (int j=0 ; j<=kHeight;j++){
-			mean += texelFetch(image, texIndex + ivec2(i, j), 0).xyz * texelFetch(kernel, ivec2(i,j),0).r;
+			mean += texelFetch(image, texIndex + ivec2(i, j), 0).xyz * texelFetch(kernel, i * 7 + j,0).r;
 		}
 	}
 	mean /= kWidth*kHeight;
