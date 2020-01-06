@@ -9,6 +9,8 @@ DIMG::DIMG(){
 	kernelData = vector<int>(49, 0);
 	// Default 3x3 Kernel's size
 	size = glm::ivec2(3);
+	t_size = size;
+	flag = 0;
 }
 
 DIMG::~DIMG(){
@@ -214,9 +216,13 @@ void DIMG::blackandwhite(GLuint image) {
 }
 
 void DIMG::sobel(GLuint image){
-	setKernel();
+	if(!flag || (flag == 1 && currentShader != DIMG_SOBEL_GRAD) || t_size != size){
+		currentShader = DIMG_SOBEL_GRAD;
+		setKernel();
+		flag = 1;
+		t_size = size;
+	}
 	shader = new Shader("assets/shaders/sobel.vert", "assets/shaders/sobel.frag");
-	currentShader = DIMG_SOBEL_GRAD;
 	shader->use();
 	// Send image to GPU
 	shader->setInt("image", 0);
@@ -224,7 +230,7 @@ void DIMG::sobel(GLuint image){
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image);
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, kernel);
+	glBindTexture(GL_TEXTURE_1D, kernel);
 }
 
 void DIMG::roberts(GLuint image) {
@@ -300,16 +306,30 @@ void DIMG::gaussianLaplace(GLuint image) {
 }
 
 void DIMG::setKernel(){
-	// Tamaño de la matriz en size
+	// Initialize Kernel information
 	kernelData = vector<int>(49, 0);
-	// Media
-	for (int i = 0; i < size.x; i++){
-		for (int j = 0; j < size.y; j++) {
-			// m[i][j] = m[i * 7 + j] 
-			// i y j empiezan en 0
-			kernelData[i * 7 + j] = 1;
-		}
+	switch (currentShader) {
+	case DIMG_MEDIAN_BLUR:
+		computeMedianKernel();
+		break;
+	case DIMG_MEAN_BLUR:
+		computeMeanKernel();
+		break;
+	case DIMG_SOBEL_GRAD:
+		computeSobelKernel();
+		break;
+	case DIMG_ROBERTS_GRAD:
+		computeRobertsKernel();
+		break;
+	case DIMG_PREWITT_GRAD:
+		computePrewittKernel();
+		break;
+	case DIMG_GAUSSIAN_BLUR:
+		computeGaussianKernel();
+		break;
 	}
+	// Media
+
 	glGenTextures(1, &kernel);
 	glBindTexture(GL_TEXTURE_1D, kernel);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -359,4 +379,71 @@ std::string DIMG::savePath(){
 	return fileNameStr;
 }
 
+void DIMG::computeMedianKernel() {
+
+}
+
+void DIMG::computeMeanKernel() {
+	for (int i = 0; i < size.x; i++) {
+		for (int j = 0; j < size.y; j++) {
+			// m[i][j] = m[i * 7 + j] 
+			// i y j empiezan en 0
+			kernelData[i * 7 + j] = 1;
+		}
+	}
+}
+
+void DIMG::computeSobelKernel() {
+
+	// m[i][j] = m[i * 7 + j] 
+	// i y j empiezan en 0
+	//kernelData[i * 7 + j] = 1;
+	std::vector<float> gx = std::vector<float>(49, 0.0f);
+	std::vector<float> gy = std::vector<float>(49, 0.0f);
+
+	glm::ivec2 pivot;
+	int ki, kj, kiikjj;
+	// Starting from kernel's center
+	// Gx_ij = i / (i*i + j*j)
+	// Gy_ij = j / (i*i + j*j)
+	// GradientValue = sqrt(gx*gx + gy*gy)
+	pivot.x = size.x / 2;
+	pivot.y = size.y / 2;
+	printf("(%i,%i)\n", size.x, size.y);
+	// Compute Sobel filter x-axis and y-axis gradients
+	for (int i = 0; i < size.x; i++){
+		for (int j = 0; j < size.y; j++) {
+			ki = j - pivot.x;
+			kj = i - pivot.y;
+			if (glm::ivec2(i, j) == pivot) {
+				kernelData[i * 7 + j] = 0;
+				gx[i * 7 + j] = 0;
+				std::cout << "0   ";
+				continue;
+			}
+			kiikjj = ki * ki + kj * kj;
+			std::cout << ki << "/" << kiikjj << " ";
+			// 1170 multiplication turn all values integers
+			//gx[i * 7 + j] = ki / kiikjj * 2;
+			kernelData[i*7+j] = ki * 390 / kiikjj ;
+			//gy[i * 7 + j] = kj / kiikjj;
+		}
+		std::cout<<std::endl;
+	}
+	for (int i = 0; i < size.x; i++) {
+		for (int j = 0; j < size.y; j++)
+			std::cout << kernelData[i * 7 + j] << " , ";
+		std::cout << std::endl;
+	}
+}
+
+void DIMG::computeRobertsKernel() {
+}
+
+void DIMG::computePrewittKernel() {
+}
+
+void DIMG::computeGaussianKernel() {
+
+}
 

@@ -26,10 +26,10 @@ private:
 	vector<int> kernelData;
 	GLuint kernel;
 	int currentShader;
-	glm::ivec2 size;
-	// PRIVATE FUNCTIONS
-	void setKernel();
+	bool flag;
+	glm::ivec2 size,t_size;
 public:
+
 	Shader *shader;
 	DIMG();
 	~DIMG();
@@ -127,5 +127,13 @@ public:
 	 * */
 	std::string savePath();
 
-
+private:
+	// PRIVATE FUNCTIONS
+	void setKernel();
+	void computeMedianKernel();
+	void computeMeanKernel();
+	void computeSobelKernel();
+	void computeRobertsKernel();
+	void computePrewittKernel();
+	void computeGaussianKernel();
 };	

@@ -1,8 +1,9 @@
 #include "UserInterface.h"
 
 int UI::listbox_item_current = 0;
-int UI::kernelheight = 2;
-int UI::kernelwidth  = 2;
+int UI::kernelheight = 3;
+int UI::kernelwidth  = 3;
+bool UI::b_squareMatrix = 1;
 
 UI::UI() {
 }
@@ -33,15 +34,23 @@ void UI::ImGuiDraw() {
 	ImGui::Combo("Techniques\n",&listbox_item_current,items,IM_ARRAYSIZE(items));
 
 	// Kernel size menu
-	int w_min=1, w_max=7, h_min=1, h_max=7;
+	int w_min=2, w_max=7, h_min=2, h_max=7;
 	if (listbox_item_current > 3) {
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader("Kernel Size", ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			w_min = kernelheight == 1 ? w_min = 2 : w_min = 1;
-			h_min = kernelwidth  == 1 ? h_min = 2 : h_min = 1;
-			ImGui::SliderInt("Width", &kernelwidth, w_min, w_max);
-			ImGui::SliderInt("Height", &kernelheight, h_min, h_max);
+			if (b_squareMatrix == 0){
+				w_min = kernelheight == 1 ? w_min = 2 : w_min = 1;
+				h_min = kernelwidth == 1 ? h_min = 2 : h_min = 1;
+				ImGui::SliderInt("Width", &kernelwidth, w_min, w_max);
+				ImGui::SliderInt("Height", &kernelheight, h_min, h_max);
+			}
+			else {
+				w_min = h_min = 2;
+				ImGui::SliderInt("Size", &kernelwidth, h_min, h_max);
+				kernelheight = kernelwidth;
+			}
+			ImGui::Checkbox("Square Matrix", &b_squareMatrix);
 		}
 	}
 

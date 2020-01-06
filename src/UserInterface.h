@@ -15,6 +15,7 @@ public:
 	void ImGuiTerminate();
 	static int listbox_item_current;
 	static int kernelwidth, kernelheight;
+	static bool b_squareMatrix;
 private:
 	
 };
