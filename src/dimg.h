@@ -27,7 +27,7 @@ private:
 	GLuint kernel;
 	int currentShader;
 	bool flag;
-	glm::ivec2 size,t_size;
+	glm::ivec2 size,k_size;
 public:
 
 	Shader *shader;

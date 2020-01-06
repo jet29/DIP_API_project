@@ -1,6 +1,7 @@
 #include "UserInterface.h"
 
 int UI::listbox_item_current = 0;
+int UI::listbox_sobel_gradient = 0;
 int UI::kernelheight = 3;
 int UI::kernelwidth  = 3;
 bool UI::b_squareMatrix = 1;
@@ -51,6 +52,9 @@ void UI::ImGuiDraw() {
 				kernelheight = kernelwidth;
 			}
 			ImGui::Checkbox("Square Matrix", &b_squareMatrix);
+
+			const char* gradient_orientation[] = { "X-axis","Y-axis"};
+			ImGui::Combo("Gradient", &listbox_sobel_gradient, gradient_orientation, IM_ARRAYSIZE(gradient_orientation));
 		}
 	}
 

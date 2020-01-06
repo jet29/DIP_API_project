@@ -13,7 +13,7 @@ public:
 	bool initImGui(GLFWwindow* window);
 	void ImGuiDraw();
 	void ImGuiTerminate();
-	static int listbox_item_current;
+	static int listbox_item_current, listbox_sobel_gradient;
 	static int kernelwidth, kernelheight;
 	static bool b_squareMatrix;
 private:

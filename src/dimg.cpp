@@ -9,7 +9,7 @@ DIMG::DIMG(){
 	kernelData = vector<int>(49, 0);
 	// Default 3x3 Kernel's size
 	size = glm::ivec2(3);
-	t_size = size;
+	k_size = size;
 	flag = 0;
 }
 
@@ -216,17 +216,19 @@ void DIMG::blackandwhite(GLuint image) {
 }
 
 void DIMG::sobel(GLuint image){
-	if(!flag || (flag == 1 && currentShader != DIMG_SOBEL_GRAD) || t_size != size){
+	if(!flag || (flag == 1 && currentShader != DIMG_SOBEL_GRAD) || k_size != size){
 		currentShader = DIMG_SOBEL_GRAD;
 		setKernel();
 		flag = 1;
-		t_size = size;
+		k_size = size;
 	}
 	shader = new Shader("assets/shaders/sobel.vert", "assets/shaders/sobel.frag");
 	shader->use();
 	// Send image to GPU
 	shader->setInt("image", 0);
-	shader->setInt("matrix", 1);
+	shader->setInt("kernel", 1);
+	shader->setInt("kWidth", size.x);
+	shader->setInt("kHeight", size.y);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image);
 	glActiveTexture(GL_TEXTURE1);
@@ -329,16 +331,16 @@ void DIMG::setKernel(){
 		break;
 	}
 	// Media
-
-	glGenTextures(1, &kernel);
-	glBindTexture(GL_TEXTURE_1D, kernel);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32I, 49, 0, GL_RED_INTEGER, GL_INT, kernelData.data());
-	glBindTexture(GL_TEXTURE_1D, 0);
+	if (currentShader != DIMG_SOBEL_GRAD) {
+		glGenTextures(1, &kernel);
+		glBindTexture(GL_TEXTURE_1D, kernel);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32I, 49, 0, GL_RED_INTEGER, GL_INT, kernelData.data());
+		glBindTexture(GL_TEXTURE_1D, 0);
+	}
 }
 
 std::string DIMG::loadPath(){
@@ -416,25 +418,32 @@ void DIMG::computeSobelKernel() {
 			ki = j - pivot.x;
 			kj = i - pivot.y;
 			if (glm::ivec2(i, j) == pivot) {
-				kernelData[i * 7 + j] = 0;
+				//kernelData[i * 7 + j] = 0;
 				gx[i * 7 + j] = 0;
 				std::cout << "0   ";
 				continue;
 			}
 			kiikjj = ki * ki + kj * kj;
-			std::cout << ki << "/" << kiikjj << " ";
-			// 1170 multiplication turn all values integers
-			//gx[i * 7 + j] = ki / kiikjj * 2;
-			kernelData[i*7+j] = ki * 390 / kiikjj ;
-			//gy[i * 7 + j] = kj / kiikjj;
+			std::cout << kj << "/" << kiikjj << " ";
+			gx[i * 7 + j] = (float) ki / (float)kiikjj;
+			gy[i * 7 + j] = (float) kj / (float)kiikjj;
 		}
 		std::cout<<std::endl;
 	}
 	for (int i = 0; i < size.x; i++) {
 		for (int j = 0; j < size.y; j++)
-			std::cout << kernelData[i * 7 + j] << " , ";
+			std::cout << gy[i * 7 + j] << " , ";
 		std::cout << std::endl;
 	}
+
+	glGenTextures(1, &kernel);
+	glBindTexture(GL_TEXTURE_1D, kernel);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gx.data());
+	glBindTexture(GL_TEXTURE_1D, 0);
 }
 
 void DIMG::computeRobertsKernel() {
