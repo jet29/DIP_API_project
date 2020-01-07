@@ -4,6 +4,10 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
+#include <iostream>
+
+using namespace std;
+
 DIMG::DIMG(){
 	// Initialize matrix
 	kernelData = vector<int>(49, 0);
@@ -237,8 +241,8 @@ void DIMG::sobel(GLuint image){
 
 void DIMG::roberts(GLuint image) {
 	setKernel();
-	shader = new Shader("assets/shaders/roberts.vert", "assets/shaders/roberts.frag");
 	currentShader = DIMG_ROBERTS_GRAD;
+	shader = new Shader("assets/shaders/roberts.vert", "assets/shaders/roberts.frag");
 	shader->use();
 	// Send image to GPU
 	shader->setInt("image", 0);
@@ -250,17 +254,23 @@ void DIMG::roberts(GLuint image) {
 }
 
 void DIMG::prewitt(GLuint image) {
-	setKernel();
+	if (!flag || (flag == 1 && currentShader != DIMG_PREWITT_GRAD) || k_size != size) {
+		currentShader = DIMG_PREWITT_GRAD;
+		setKernel();
+		flag = 1;
+		k_size = size;
+	}
 	shader = new Shader("assets/shaders/prewitt.vert", "assets/shaders/prewitt.frag");
-	currentShader = DIMG_PREWITT_GRAD;
 	shader->use();
 	// Send image to GPU
 	shader->setInt("image", 0);
-	shader->setInt("matrix", 1);
+	shader->setInt("kernel", 1);
+	shader->setInt("kWidth", size.x);
+	shader->setInt("kHeight", size.y);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image);
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, kernel);
+	glBindTexture(GL_TEXTURE_1D, kernel);
 }
 
 void DIMG::mean(GLuint image) {
@@ -411,6 +421,8 @@ void DIMG::computeSobelKernel() {
 	// GradientValue = sqrt(gx*gx + gy*gy)
 	pivot.x = size.x / 2;
 	pivot.y = size.y / 2;
+
+	/*
 	printf("(%i,%i)\n", size.x, size.y);
 	// Compute Sobel filter x-axis and y-axis gradients
 	for (int i = 0; i < size.x; i++){
@@ -430,10 +442,54 @@ void DIMG::computeSobelKernel() {
 		}
 		std::cout<<std::endl;
 	}
+
 	for (int i = 0; i < size.x; i++) {
 		for (int j = 0; j < size.y; j++)
 			std::cout << gy[i * 7 + j] << " , ";
 		std::cout << std::endl;
+	}
+
+	*/
+
+	printf("(%i,%i)\n", size.x, size.y);
+
+	for (int i = 0; i < size.x; i++) {
+
+		for (int j = 0; j < size.y; j++) {
+		
+			ki = i - pivot.x;
+			kj = j - pivot.y;
+
+			if (glm::ivec2(i, j) == pivot) {
+				//kernelData[i * 7 + j] = 0;
+				gx[i * 7 + j] = 0;
+				std::cout << "0   ";
+				continue;
+			}
+	
+			// Gx_ij = i / (i*i + j*j)
+			kiikjj = ki * ki + kj * kj;
+			//std::cout << kj << "/" << kiikjj << " ";
+			gx[i * 7 + j] = (float)ki / (float)kiikjj;
+			gy[i * 7 + j] = (float)kj / (float)kiikjj;
+		
+		}
+	}
+
+	cout << "Printing gx" << endl;
+	for (int i = 0; i < 7; i++) {
+		for (int j = 0; j < 7; j++) {
+			cout << gx[i * 7 + j]<<" ";
+		}
+		cout << endl;
+	}
+
+	cout << "Printing gy" << endl;
+	for (int i = 0; i < 7; i++) {
+		for (int j = 0; j < 7; j++) {
+			cout << gy[i * 7 + j] << " ";
+		}
+		cout << endl;
 	}
 
 	glGenTextures(1, &kernel);
@@ -450,6 +506,93 @@ void DIMG::computeRobertsKernel() {
 }
 
 void DIMG::computePrewittKernel() {
+
+	// m[i][j] = m[i * 7 + j] 
+	// i y j empiezan en 0
+	//kernelData[i * 7 + j] = 1;
+	std::vector<float> gx = std::vector<float>(49, 0.0f);
+	std::vector<float> gy = std::vector<float>(49, 0.0f);
+
+	glm::ivec2 pivot;
+	int ki, kj, kiikjj;
+	// Starting from kernel's center
+	// Gx_ij = i / (i*i + j*j)
+	// Gy_ij = j / (i*i + j*j)
+	// GradientValue = sqrt(gx*gx + gy*gy)
+	pivot.x = size.x / 2;
+	pivot.y = size.y / 2;
+
+	/*
+	printf("(%i,%i)\n", size.x, size.y);
+	// Compute Sobel filter x-axis and y-axis gradients
+	for (int i = 0; i < size.x; i++){
+		for (int j = 0; j < size.y; j++) {
+			ki = j - pivot.x;
+			kj = i - pivot.y;
+			if (glm::ivec2(i, j) == pivot) {
+				//kernelData[i * 7 + j] = 0;
+				gx[i * 7 + j] = 0;
+				std::cout << "0   ";
+				continue;
+			}
+			kiikjj = ki * ki + kj * kj;
+			std::cout << kj << "/" << kiikjj << " ";
+			gx[i * 7 + j] = (float) ki / (float)kiikjj;
+			gy[i * 7 + j] = (float) kj / (float)kiikjj;
+		}
+		std::cout<<std::endl;
+	}
+
+	for (int i = 0; i < size.x; i++) {
+		for (int j = 0; j < size.y; j++)
+			std::cout << gy[i * 7 + j] << " , ";
+		std::cout << std::endl;
+	}
+
+	*/
+
+	printf("(%i,%i)\n", size.x, size.y);
+
+	for (int i = 0; i < size.x; i++) {
+
+		for (int j = 0; j < size.y; j++) {
+
+			ki = i - pivot.x;
+			kj = j - pivot.y;
+
+			// Gx_ij = i / (i*i + j*j)
+			kiikjj = ki * ki + kj * kj;
+			//std::cout << kj << "/" << kiikjj << " ";
+			gx[i * 7 + j] = (float)ki;
+			gy[i * 7 + j] = (float)kj;
+
+		}
+	}
+
+	cout << "Printing gx" << endl;
+	for (int i = 0; i < 7; i++) {
+		for (int j = 0; j < 7; j++) {
+			cout << gx[i * 7 + j] << " ";
+		}
+		cout << endl;
+	}
+
+	cout << "Printing gy" << endl;
+	for (int i = 0; i < 7; i++) {
+		for (int j = 0; j < 7; j++) {
+			cout << gy[i * 7 + j] << " ";
+		}
+		cout << endl;
+	}
+
+	glGenTextures(1, &kernel);
+	glBindTexture(GL_TEXTURE_1D, kernel);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gx.data());
+	glBindTexture(GL_TEXTURE_1D, 0);
 }
 
 void DIMG::computeGaussianKernel() {
