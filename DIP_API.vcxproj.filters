@@ -59,6 +59,8 @@
     </None>
     <None Include="assets\shaders\mean.frag" />
     <None Include="assets\shaders\mean.vert" />
+    <None Include="assets\shaders\prewitt.frag" />
+    <None Include="assets\shaders\prewitt.vert" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">

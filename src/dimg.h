@@ -24,7 +24,7 @@ class DIMG{
 private:
 	
 	vector<int> kernelData;
-	GLuint kernel;
+	GLuint kernel, gx, gy;
 	int currentShader;
 	bool flag;
 	glm::ivec2 size,k_size;
@@ -45,7 +45,7 @@ public:
 
 	glm::ivec2 getKernelSize();
 
-	/** 
+	/**
 	 * Overloaded function
 	 * Loads an image as a texture into the GPU
 	 * @returns{unsigned int} GPU texture index
@@ -130,10 +130,4 @@ public:
 private:
 	// PRIVATE FUNCTIONS
 	void setKernel();
-	void computeMedianKernel();
-	void computeMeanKernel();
-	void computeSobelKernel();
-	void computeRobertsKernel();
-	void computePrewittKernel();
-	void computeGaussianKernel();
 };	

@@ -230,16 +230,25 @@ void DIMG::sobel(GLuint image){
 	shader->use();
 	// Send image to GPU
 	shader->setInt("image", 0);
-	shader->setInt("kernel", 1);
+	shader->setInt("gx", 1);
+	shader->setInt("gy", 2);
 	shader->setInt("kWidth", size.x);
 	shader->setInt("kHeight", size.y);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image);
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_1D, kernel);
+	glBindTexture(GL_TEXTURE_1D, gx);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_1D, gy);
 }
 
 void DIMG::roberts(GLuint image) {
+	if (!flag || (flag == 1 && currentShader != DIMG_ROBERTS_GRAD) || k_size != size) {
+		currentShader = DIMG_ROBERTS_GRAD;
+		setKernel();
+		flag = 1;
+		k_size = size;
+	}
 	setKernel();
 	currentShader = DIMG_ROBERTS_GRAD;
 	shader = new Shader("assets/shaders/roberts.vert", "assets/shaders/roberts.frag");
@@ -321,27 +330,16 @@ void DIMG::setKernel(){
 	// Initialize Kernel information
 	kernelData = vector<int>(49, 0);
 	switch (currentShader) {
-	case DIMG_MEDIAN_BLUR:
-		computeMedianKernel();
-		break;
-	case DIMG_MEAN_BLUR:
-		computeMeanKernel();
-		break;
-	case DIMG_SOBEL_GRAD:
-		computeSobelKernel();
-		break;
-	case DIMG_ROBERTS_GRAD:
-		computeRobertsKernel();
-		break;
-	case DIMG_PREWITT_GRAD:
-		computePrewittKernel();
-		break;
-	case DIMG_GAUSSIAN_BLUR:
-		computeGaussianKernel();
-		break;
-	}
-	// Media
-	if (currentShader != DIMG_SOBEL_GRAD) {
+	case DIMG_MEDIAN_BLUR: {
+		// ATTENTION: this is not median blur
+		//for (int i = 0; i < size.x; i++) {
+		//	for (int j = 0; j < size.y; j++) {
+		//		// m[i][j] = m[i * 7 + j] 
+		//		// i y j empiezan en 0
+		//		kernelData[i * 7 + j] = 1;
+		//	}
+		//}
+		// Textures for median blur
 		glGenTextures(1, &kernel);
 		glBindTexture(GL_TEXTURE_1D, kernel);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -350,6 +348,160 @@ void DIMG::setKernel(){
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32I, 49, 0, GL_RED_INTEGER, GL_INT, kernelData.data());
 		glBindTexture(GL_TEXTURE_1D, 0);
+		break;
+	}
+	case DIMG_MEAN_BLUR: {
+		for (int i = 0; i < size.x; i++) {
+			for (int j = 0; j < size.y; j++) {
+				// m[i][j] = m[i * 7 + j] 
+				// i y j empiezan en 0
+				kernelData[i * 7 + j] = 1;
+			}
+		}
+		// Textures for mean blur
+		glGenTextures(1, &kernel);
+		glBindTexture(GL_TEXTURE_1D, kernel);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32I, 49, 0, GL_RED_INTEGER, GL_INT, kernelData.data());
+		glBindTexture(GL_TEXTURE_1D, 0);
+		break;
+	}
+	case DIMG_SOBEL_GRAD: {
+		std::vector<float> gx = std::vector<float>(49, 0.0f);
+		std::vector<float> gy = std::vector<float>(49, 0.0f);
+		glm::ivec2 pivot;
+		int ki, kj, kiikjj;
+		// Starting from kernel's center
+		// Gx_ij = i / (i*i + j*j)
+		// Gy_ij = j / (i*i + j*j)
+		// GradientValue = sqrt(gx*gx + gy*gy)
+		pivot.x = size.x / 2;
+		pivot.y = size.y / 2;
+		for (int i = 0; i < size.x; i++) {
+			for (int j = 0; j < size.y; j++) {
+
+				ki = i - pivot.x;
+				kj = j - pivot.y;
+
+				if (glm::ivec2(i, j) == pivot) {
+					gy[i * 7 + j] = 0;
+					gx[i * 7 + j] = 0;
+					std::cout << "0   ";
+					continue;
+				}
+				// Gx_ij = i / (i*i + j*j)
+				kiikjj = ki * ki + kj * kj;
+				//std::cout << kj << "/" << kiikjj << " ";
+				gy[i * 7 + j] = (float)ki / (float)kiikjj;
+				gx[i * 7 + j] = (float)kj / (float)kiikjj;
+			}
+		}
+
+		//cout << "Printing gx" << endl;
+		//for (int i = 0; i < 7; i++) {
+		//	for (int j = 0; j < 7; j++) {
+		//		cout << gx[i * 7 + j] << " ";
+		//	}
+		//	cout << endl;
+		//}
+
+		//cout << "Printing gy" << endl;
+		//for (int i = 0; i < 7; i++) {
+		//	for (int j = 0; j < 7; j++) {
+		//		cout << gy[i * 7 + j] << " ";
+		//	}
+		//	cout << endl;
+		//}
+
+		// Texture for sobel's gradient x-axis
+		glGenTextures(1, &this->gx);
+		glBindTexture(GL_TEXTURE_1D, this->gx);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gx.data());
+		glBindTexture(GL_TEXTURE_1D, 0);
+
+		// Texture for sobel's gradient y-axis
+		glGenTextures(1, &this->gy);
+		glBindTexture(GL_TEXTURE_1D, this->gy);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gy.data());
+		glBindTexture(GL_TEXTURE_1D, 0);
+		break;
+	}
+	case DIMG_ROBERTS_GRAD: {
+		break;
+	}
+	case DIMG_PREWITT_GRAD: {
+		// m[i][j] = m[i * 7 + j] 
+		// i y j empiezan en 0
+		//kernelData[i * 7 + j] = 1;
+		std::vector<float> gx = std::vector<float>(49, 0.0f);
+		std::vector<float> gy = std::vector<float>(49, 0.0f);
+
+		glm::ivec2 pivot;
+		int ki, kj;
+		// Starting from kernel's center
+		// Gx_ij = i / (i*i + j*j)
+		// Gy_ij = j / (i*i + j*j)
+		// GradientValue = sqrt(gx*gx + gy*gy)
+		pivot.x = size.x / 2;
+		pivot.y = size.y / 2;
+
+		printf("(%i,%i)\n", size.x, size.y);
+
+		for (int i = 0; i < size.x; i++) {
+
+			for (int j = 0; j < size.y; j++) {
+
+				ki = i - pivot.x;
+				kj = j - pivot.y;
+
+				// Gx_ij = i / (i*i + j*j)
+				//std::cout << kj << "/" << kiikjj << " ";
+				gx[i * 7 + j] = (float)ki;
+				gy[i * 7 + j] = (float)kj;
+
+			}
+		}
+
+		cout << "Printing gx" << endl;
+		for (int i = 0; i < 7; i++) {
+			for (int j = 0; j < 7; j++) {
+				cout << gx[i * 7 + j] << " ";
+			}
+			cout << endl;
+		}
+
+		cout << "Printing gy" << endl;
+		for (int i = 0; i < 7; i++) {
+			for (int j = 0; j < 7; j++) {
+				cout << gy[i * 7 + j] << " ";
+			}
+			cout << endl;
+		}
+
+		glGenTextures(1, &kernel);
+		glBindTexture(GL_TEXTURE_1D, kernel);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gx.data());
+		glBindTexture(GL_TEXTURE_1D, 0);
+		break;
+	}
+	case DIMG_GAUSSIAN_BLUR: {
+		break;
+	}
 	}
 }
 
@@ -389,213 +541,5 @@ std::string DIMG::savePath(){
 		fileNameStr = fileName;
 	}
 	return fileNameStr;
-}
-
-void DIMG::computeMedianKernel() {
-
-}
-
-void DIMG::computeMeanKernel() {
-	for (int i = 0; i < size.x; i++) {
-		for (int j = 0; j < size.y; j++) {
-			// m[i][j] = m[i * 7 + j] 
-			// i y j empiezan en 0
-			kernelData[i * 7 + j] = 1;
-		}
-	}
-}
-
-void DIMG::computeSobelKernel() {
-
-	// m[i][j] = m[i * 7 + j] 
-	// i y j empiezan en 0
-	//kernelData[i * 7 + j] = 1;
-	std::vector<float> gx = std::vector<float>(49, 0.0f);
-	std::vector<float> gy = std::vector<float>(49, 0.0f);
-
-	glm::ivec2 pivot;
-	int ki, kj, kiikjj;
-	// Starting from kernel's center
-	// Gx_ij = i / (i*i + j*j)
-	// Gy_ij = j / (i*i + j*j)
-	// GradientValue = sqrt(gx*gx + gy*gy)
-	pivot.x = size.x / 2;
-	pivot.y = size.y / 2;
-
-	/*
-	printf("(%i,%i)\n", size.x, size.y);
-	// Compute Sobel filter x-axis and y-axis gradients
-	for (int i = 0; i < size.x; i++){
-		for (int j = 0; j < size.y; j++) {
-			ki = j - pivot.x;
-			kj = i - pivot.y;
-			if (glm::ivec2(i, j) == pivot) {
-				//kernelData[i * 7 + j] = 0;
-				gx[i * 7 + j] = 0;
-				std::cout << "0   ";
-				continue;
-			}
-			kiikjj = ki * ki + kj * kj;
-			std::cout << kj << "/" << kiikjj << " ";
-			gx[i * 7 + j] = (float) ki / (float)kiikjj;
-			gy[i * 7 + j] = (float) kj / (float)kiikjj;
-		}
-		std::cout<<std::endl;
-	}
-
-	for (int i = 0; i < size.x; i++) {
-		for (int j = 0; j < size.y; j++)
-			std::cout << gy[i * 7 + j] << " , ";
-		std::cout << std::endl;
-	}
-
-	*/
-
-	printf("(%i,%i)\n", size.x, size.y);
-
-	for (int i = 0; i < size.x; i++) {
-
-		for (int j = 0; j < size.y; j++) {
-		
-			ki = i - pivot.x;
-			kj = j - pivot.y;
-
-			if (glm::ivec2(i, j) == pivot) {
-				//kernelData[i * 7 + j] = 0;
-				gx[i * 7 + j] = 0;
-				std::cout << "0   ";
-				continue;
-			}
-	
-			// Gx_ij = i / (i*i + j*j)
-			kiikjj = ki * ki + kj * kj;
-			//std::cout << kj << "/" << kiikjj << " ";
-			gx[i * 7 + j] = (float)ki / (float)kiikjj;
-			gy[i * 7 + j] = (float)kj / (float)kiikjj;
-		
-		}
-	}
-
-	cout << "Printing gx" << endl;
-	for (int i = 0; i < 7; i++) {
-		for (int j = 0; j < 7; j++) {
-			cout << gx[i * 7 + j]<<" ";
-		}
-		cout << endl;
-	}
-
-	cout << "Printing gy" << endl;
-	for (int i = 0; i < 7; i++) {
-		for (int j = 0; j < 7; j++) {
-			cout << gy[i * 7 + j] << " ";
-		}
-		cout << endl;
-	}
-
-	glGenTextures(1, &kernel);
-	glBindTexture(GL_TEXTURE_1D, kernel);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gx.data());
-	glBindTexture(GL_TEXTURE_1D, 0);
-}
-
-void DIMG::computeRobertsKernel() {
-}
-
-void DIMG::computePrewittKernel() {
-
-	// m[i][j] = m[i * 7 + j] 
-	// i y j empiezan en 0
-	//kernelData[i * 7 + j] = 1;
-	std::vector<float> gx = std::vector<float>(49, 0.0f);
-	std::vector<float> gy = std::vector<float>(49, 0.0f);
-
-	glm::ivec2 pivot;
-	int ki, kj, kiikjj;
-	// Starting from kernel's center
-	// Gx_ij = i / (i*i + j*j)
-	// Gy_ij = j / (i*i + j*j)
-	// GradientValue = sqrt(gx*gx + gy*gy)
-	pivot.x = size.x / 2;
-	pivot.y = size.y / 2;
-
-	/*
-	printf("(%i,%i)\n", size.x, size.y);
-	// Compute Sobel filter x-axis and y-axis gradients
-	for (int i = 0; i < size.x; i++){
-		for (int j = 0; j < size.y; j++) {
-			ki = j - pivot.x;
-			kj = i - pivot.y;
-			if (glm::ivec2(i, j) == pivot) {
-				//kernelData[i * 7 + j] = 0;
-				gx[i * 7 + j] = 0;
-				std::cout << "0   ";
-				continue;
-			}
-			kiikjj = ki * ki + kj * kj;
-			std::cout << kj << "/" << kiikjj << " ";
-			gx[i * 7 + j] = (float) ki / (float)kiikjj;
-			gy[i * 7 + j] = (float) kj / (float)kiikjj;
-		}
-		std::cout<<std::endl;
-	}
-
-	for (int i = 0; i < size.x; i++) {
-		for (int j = 0; j < size.y; j++)
-			std::cout << gy[i * 7 + j] << " , ";
-		std::cout << std::endl;
-	}
-
-	*/
-
-	printf("(%i,%i)\n", size.x, size.y);
-
-	for (int i = 0; i < size.x; i++) {
-
-		for (int j = 0; j < size.y; j++) {
-
-			ki = i - pivot.x;
-			kj = j - pivot.y;
-
-			// Gx_ij = i / (i*i + j*j)
-			kiikjj = ki * ki + kj * kj;
-			//std::cout << kj << "/" << kiikjj << " ";
-			gx[i * 7 + j] = (float)ki;
-			gy[i * 7 + j] = (float)kj;
-
-		}
-	}
-
-	cout << "Printing gx" << endl;
-	for (int i = 0; i < 7; i++) {
-		for (int j = 0; j < 7; j++) {
-			cout << gx[i * 7 + j] << " ";
-		}
-		cout << endl;
-	}
-
-	cout << "Printing gy" << endl;
-	for (int i = 0; i < 7; i++) {
-		for (int j = 0; j < 7; j++) {
-			cout << gy[i * 7 + j] << " ";
-		}
-		cout << endl;
-	}
-
-	glGenTextures(1, &kernel);
-	glBindTexture(GL_TEXTURE_1D, kernel);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gx.data());
-	glBindTexture(GL_TEXTURE_1D, 0);
-}
-
-void DIMG::computeGaussianKernel() {
-
 }
 
