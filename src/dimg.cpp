@@ -249,17 +249,21 @@ void DIMG::roberts(GLuint image) {
 		flag = 1;
 		k_size = size;
 	}
-	setKernel();
 	currentShader = DIMG_ROBERTS_GRAD;
 	shader = new Shader("assets/shaders/roberts.vert", "assets/shaders/roberts.frag");
 	shader->use();
 	// Send image to GPU
 	shader->setInt("image", 0);
-	shader->setInt("matrix", 1);
+	shader->setInt("gx", 1);
+	shader->setInt("gy", 2);
+	shader->setInt("kWidth", size.x);
+	shader->setInt("kHeight", size.y);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image);
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, kernel);
+	glBindTexture(GL_TEXTURE_1D, gx);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_1D, gy);
 }
 
 void DIMG::prewitt(GLuint image) {
@@ -273,13 +277,16 @@ void DIMG::prewitt(GLuint image) {
 	shader->use();
 	// Send image to GPU
 	shader->setInt("image", 0);
-	shader->setInt("kernel", 1);
+	shader->setInt("gx", 1);
+	shader->setInt("gy", 2);
 	shader->setInt("kWidth", size.x);
 	shader->setInt("kHeight", size.y);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image);
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_1D, kernel);
+	glBindTexture(GL_TEXTURE_1D, gx);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_1D, gy);
 }
 
 void DIMG::mean(GLuint image) {
@@ -328,9 +335,10 @@ void DIMG::gaussianLaplace(GLuint image) {
 
 void DIMG::setKernel(){
 	// Initialize Kernel information
-	kernelData = vector<int>(49, 0);
+
 	switch (currentShader) {
 	case DIMG_MEDIAN_BLUR: {
+		kernelData = vector<int>(49, 0);
 		// ATTENTION: this is not median blur
 		//for (int i = 0; i < size.x; i++) {
 		//	for (int j = 0; j < size.y; j++) {
@@ -351,6 +359,7 @@ void DIMG::setKernel(){
 		break;
 	}
 	case DIMG_MEAN_BLUR: {
+		kernelData = vector<int>(49, 0);
 		for (int i = 0; i < size.x; i++) {
 			for (int j = 0; j < size.y; j++) {
 				// m[i][j] = m[i * 7 + j] 
@@ -438,12 +447,77 @@ void DIMG::setKernel(){
 		break;
 	}
 	case DIMG_ROBERTS_GRAD: {
+		std::vector<float> gx = std::vector<float>(49, 0.0f);
+		std::vector<float> gy = std::vector<float>(49, 0.0f);
+		glm::ivec2 pivot;
+		int val;
+		// CASO IMPAR: Buscar el numero par mas cercano por debajo y trabajar con esa matriz
+		// CASO PAR: Matriz con diagonal espejo con signo cambiado
+		/* 
+		 PAR:          IMPAR:
+		  2  0  0  0   0  0  0
+		  0  1  0  0   0  1  0
+		  0  0 -1  0   0  0 -1
+		  0  0  0 -2
+
+		*/
+		pivot.x = size.x / 2;
+		pivot.y = size.y / 2;
+		val = pivot.x;
+		for (int i = 0, j = 0; i < size.x; i++, j++, val--) {
+			if (!val)
+				val--;
+			gx[i * 7 + j] = val;
+		}
+
+		val = pivot.y;
+		for (int i = 0, j = size.y-1; i < size.x; i++, j--, val--) {
+			if (!val)
+				val--;
+			gy[i * 7 + j] = val;
+		}
+
+
+		//cout << "Printing gx" << endl;
+		//for (int i = 0; i < size.x; i++) {
+		//	for (int j = 0; j < size.y; j++) {
+		//		cout << gx[i * 7 + j] << " ";
+		//	}
+		//	cout << endl;
+		//}
+
+		//cout << "Printing gy" << endl;
+		//for (int i = 0; i < size.x; i++) {
+		//	for (int j = 0; j < size.y; j++) {
+		//		cout << gy[i * 7 + j] << " ";
+		//	}
+		//	cout << endl;
+		//}
+
+		// Texture for sobel's gradient x-axis
+		glGenTextures(1, &this->gx);
+		glBindTexture(GL_TEXTURE_1D, this->gx);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gx.data());
+		glBindTexture(GL_TEXTURE_1D, 0);
+
+		// Texture for sobel's gradient y-axis
+		glGenTextures(1, &this->gy);
+		glBindTexture(GL_TEXTURE_1D, this->gy);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gy.data());
+		glBindTexture(GL_TEXTURE_1D, 0);
 		break;
 	}
 	case DIMG_PREWITT_GRAD: {
 		// m[i][j] = m[i * 7 + j] 
 		// i y j empiezan en 0
-		//kernelData[i * 7 + j] = 1;
 		std::vector<float> gx = std::vector<float>(49, 0.0f);
 		std::vector<float> gy = std::vector<float>(49, 0.0f);
 
@@ -473,29 +547,40 @@ void DIMG::setKernel(){
 			}
 		}
 
-		cout << "Printing gx" << endl;
-		for (int i = 0; i < 7; i++) {
-			for (int j = 0; j < 7; j++) {
-				cout << gx[i * 7 + j] << " ";
-			}
-			cout << endl;
-		}
+		//cout << "Printing gx" << endl;
+		//for (int i = 0; i < 7; i++) {
+		//	for (int j = 0; j < 7; j++) {
+		//		cout << gx[i * 7 + j] << " ";
+		//	}
+		//	cout << endl;
+		//}
 
-		cout << "Printing gy" << endl;
-		for (int i = 0; i < 7; i++) {
-			for (int j = 0; j < 7; j++) {
-				cout << gy[i * 7 + j] << " ";
-			}
-			cout << endl;
-		}
+		//cout << "Printing gy" << endl;
+		//for (int i = 0; i < 7; i++) {
+		//	for (int j = 0; j < 7; j++) {
+		//		cout << gy[i * 7 + j] << " ";
+		//	}
+		//	cout << endl;
+		//}
 
-		glGenTextures(1, &kernel);
-		glBindTexture(GL_TEXTURE_1D, kernel);
+		// Texture for prewitt's gradient x-axis
+		glGenTextures(1, &this->gx);
+		glBindTexture(GL_TEXTURE_1D, this->gx);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gx.data());
+		glBindTexture(GL_TEXTURE_1D, 0);
+
+		// Texture for prewitt's gradient y-axis
+		glGenTextures(1, &this->gy);
+		glBindTexture(GL_TEXTURE_1D, this->gy);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gy.data());
 		glBindTexture(GL_TEXTURE_1D, 0);
 		break;
 	}

@@ -5,7 +5,8 @@ in vec3 vColor;
 in vec2 vTexPos;
 // texture
 uniform sampler2D image;
-uniform sampler1D kernel;
+uniform sampler1D gx;
+uniform sampler1D gy;
 uniform int kWidth;
 uniform int kHeight;
 
@@ -14,16 +15,20 @@ out vec4 color;
 
 void main(){
 	vec3 texColor  = texture(image,vTexPos).xyz;
+	//float grayScale = dot(texColor, vec3(0.2989,0.5870,0.1140));
 	ivec2 texSize  = textureSize(image, 0);
 	ivec2 texIndex = ivec2(vTexPos.xy * vec2(texSize.xy));
-	ivec2 pivot = ivec2(kWidth/2,kHeight/2);
-	vec3 sobel      = vec3(0.0f);
+	ivec2 pivot    = ivec2(kWidth/2,kHeight/2);
+	vec3 p_gx      = vec3(0.0f);
+	vec3 p_gy      = vec3(0.0f);
 	// Kernel application
 	for (int i=0 ;i<kWidth;i++){
 		for (int j=0 ; j<kHeight;j++){
-			sobel += texelFetch(image, texIndex + ivec2(i-pivot.x, j-pivot.y), 0).xyz * texelFetch(kernel, i * 7 + j,0).r;
+			p_gx += texelFetch(image, texIndex + ivec2(i-pivot.x, j-pivot.y), 0).xyz * texelFetch(gx, i * 7 + j,0).r;
+			p_gy += texelFetch(image, texIndex + ivec2(i-pivot.x, j-pivot.y), 0).xyz * texelFetch(gy, i * 7 + j,0).r;
 		}
 	}
-	//sobel = sobel.r < 0.4f || sobel.g < 0.4f || sobel.b < 0.4f  ? vec3(0.0f) : vec3(1.0f);
-	color = vec4(sobel,1.0f);
+	vec3 prewitt =  sqrt(p_gx*p_gx + p_gy*p_gy);
+	prewitt = vec3(dot(prewitt, vec3(0.2989,0.5870,0.1140)));
+	color = vec4(prewitt,1.0f);
 }

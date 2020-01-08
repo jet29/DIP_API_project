@@ -61,6 +61,8 @@
     <None Include="assets\shaders\mean.vert" />
     <None Include="assets\shaders\prewitt.frag" />
     <None Include="assets\shaders\prewitt.vert" />
+    <None Include="assets\shaders\roberts.frag" />
+    <None Include="assets\shaders\roberts.vert" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">

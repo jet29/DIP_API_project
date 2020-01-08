@@ -171,6 +171,8 @@
     <None Include="assets\shaders\negative.vert" />
     <None Include="assets\shaders\prewitt.frag" />
     <None Include="assets\shaders\prewitt.vert" />
+    <None Include="assets\shaders\roberts.frag" />
+    <None Include="assets\shaders\roberts.vert" />
     <None Include="assets\shaders\sobel.frag" />
     <None Include="assets\shaders\sobel.vert" />
   </ItemGroup>
