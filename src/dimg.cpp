@@ -345,6 +345,27 @@ void DIMG::gaussianLaplace(GLuint image) {
 	glBindTexture(GL_TEXTURE_1D, gx);
 }
 
+void DIMG::toonShading(GLuint image) {
+	if (!flag || (flag == 1 && currentShader != DIMG_LOG_GRAD) || k_size != size || cc != c) {
+		currentShader = DIMG_LOG_GRAD;
+		setKernel();
+		flag = 1;
+		k_size = size;
+		cc = c;
+	}
+	shader = new Shader("assets/shaders/gaussianLaplace.vert", "assets/shaders/gaussianLaplace.frag");
+	shader->use();
+	// Send image to GPU
+	shader->setInt("image", 0);
+	shader->setInt("gx", 1);
+	shader->setInt("kWidth", size.x);
+	shader->setInt("kHeight", size.y);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, image);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_1D, gx);
+}
+
 void DIMG::setKernel(){
 	// Initialize Kernel information
 

@@ -11,8 +11,6 @@ uniform int kHeight;
 // Fragment Color
 out vec4 color;
 
-void bubbleSort(inout vec3 arr[49], int n);
-
 void main(){
 	vec3 texColor  = texture(image,vTexPos).xyz;
 	ivec2 texSize  = textureSize(image, 0);
@@ -36,35 +34,16 @@ void main(){
 		}
 	}
 
-	
-	bool sorted = false;
 	vec3 temp;
-	while(!sorted){
-		sorted = true;
-		for(int i=1;i<kWidth*kHeight;i++){
-			if(c_array[i].r <c_array[i-1].r){
-				c_array[i] = c_array[i-1];
-				c_array[i-1] = temp;
-				sorted = false;
+	for(int i = 0; i < kWidth*kHeight; i++){
+		for(int j = 0 ; j < kWidth * kHeight; j++){
+			if(c_array[i].r > c_array[j].r){
+				temp = c_array[j];
+				c_array[i] = c_array[j];
+				c_array[j] = temp;
 			}
 		}
 	}
-
-
+		
 	color = vec4(c_array[kWidth*kHeight/2],1.0f);
-}
-
-void bubbleSort(inout vec3 arr[49], int n){
-	bool sorted = false;
-	vec3 temp;
-	while(!sorted){
-		sorted = true;
-		for(int i=1;i<n;i++){
-			if(arr[i].r <arr[i-1].r){
-				arr[i] = arr[i-1];
-				arr[i-1] = temp;
-				sorted = false;
-			}
-		}
-	}
 }

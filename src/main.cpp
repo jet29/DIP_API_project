@@ -194,6 +194,23 @@ void renderToTexture(){
 	glBindVertexArray(0);
 }
 
+void renderToonShading() {
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	// The texture we're going to render to
+	glGenTextures(1, &medianIMG);
+	// "Bind" the newly created texture : all future texture functions will modify this texture
+	glBindTexture(GL_TEXTURE_2D, medianIMG);
+	glFramebufferTexture(framebuffer,GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, medianIMG);
+	// Clears the color and depth buffers from the frame buffer
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	api.median(imageID);
+	// Binds the vertex array to be drawn
+	glBindVertexArray(VAO);
+	// Render triangle's geometry
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+}
+
 void forwardRendering() {
 	// Forward rendering
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -202,7 +219,7 @@ void forwardRendering() {
 	shader->use();
 	shader->setInt("image", 0);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, dsTexture);
+	glBindTexture(GL_TEXTURE_2D, medianIMG);
 	//Binds the vertex array to be drawn
 	glBindVertexArray(VAO);
 	// Renders the triangle geometry
@@ -213,7 +230,10 @@ void forwardRendering() {
 void render()
 {
 	// Deferred shading
-	renderToTexture();
+	//renderToTexture();
+
+	// Complex technique
+	renderToonShading();
 
 	// Forward rendering
 	forwardRendering();

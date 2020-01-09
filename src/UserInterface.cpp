@@ -33,7 +33,7 @@ void UI::ImGuiDraw() {
 	// Techniques list
 	ImGui::Begin("Image settings");
 	const char* items[] = { "Regular","Negative","Grayscale", "Black and White","Sobel","Roberts","Prewitt",
-						    "Mean","Median","Gaussian Laplace"};
+						    "Mean","Median","Laplace of Gaussian", "Toon Shading"};
 
 	ImGui::Combo("Techniques\n",&listbox_item_current,items,IM_ARRAYSIZE(items));
 

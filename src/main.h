@@ -6,7 +6,7 @@
 #include "Shader.h"
 #include "UserInterface.h"
 
-typedef enum {REGULAR,NEGATIVE,GRAYSCALE,BLACKANDWHITE,SOBEL,ROBERTS,PREWITT,MEAN,MEDIAN,GAUSSIAN} techniques;
+typedef enum {REGULAR,NEGATIVE,GRAYSCALE,BLACKANDWHITE,SOBEL,ROBERTS,PREWITT,MEAN,MEDIAN,GAUSSIAN,TOON_SHADING} techniques;
 
 DIMG api;
 UI *ui;
@@ -29,7 +29,7 @@ unsigned int VAO;
 unsigned int imageID;
 // Deferred shading textures, buffers
 GLuint framebuffer, depthBuffer;
-GLuint dsTexture;
+GLuint dsTexture, medianIMG;
 
 /**
  * Handles the window resize

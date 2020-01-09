@@ -18,6 +18,7 @@ using std::vector;
 #define DIMG_MEAN_BLUR 0x00107
 #define DIMG_MEDIAN_BLUR 0x00108
 #define DIMG_LOG_GRAD 0x00109
+#define DIMG_TOON_SHADING 0x00110
 
 #define PI 3.14159265359
 
@@ -112,6 +113,11 @@ public:
 	 *
 	 * */
 	void gaussianLaplace(GLuint image);
+
+	/**
+	 *
+	 * */
+	void toonShading(GLuint image);
 
 	/**
 	 * Apply sobel border technique
