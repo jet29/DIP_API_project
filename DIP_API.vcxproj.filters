@@ -65,6 +65,8 @@
     <None Include="assets\shaders\roberts.vert" />
     <None Include="assets\shaders\median.frag" />
     <None Include="assets\shaders\median.vert" />
+    <None Include="assets\shaders\gaussianLaplace.frag" />
+    <None Include="assets\shaders\gaussianLaplace.vert" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">

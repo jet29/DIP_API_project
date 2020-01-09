@@ -17,8 +17,9 @@ using std::vector;
 #define DIMG_PREWITT_GRAD 0x00106
 #define DIMG_MEAN_BLUR 0x00107
 #define DIMG_MEDIAN_BLUR 0x00108
-#define DIMG_GAUSSIAN_BLUR 0x00109
+#define DIMG_LOG_GRAD 0x00109
 
+#define PI 3.14159265359
 
 class DIMG{
 private:
@@ -28,8 +29,9 @@ private:
 	int currentShader;
 	bool flag;
 	glm::ivec2 size,k_size;
-public:
 
+public:
+	float c,cc;
 	Shader *shader;
 	DIMG();
 	~DIMG();
@@ -63,7 +65,7 @@ public:
 	/**
 	 *
 	 * */
-	void saveImage(GLuint image);
+	std::string saveImage(GLuint image);
 
 	/**
 	 *
@@ -126,6 +128,8 @@ public:
 	 *
 	 * */
 	std::string savePath();
+
+	void createHistogram(GLuint image);
 
 private:
 	// PRIVATE FUNCTIONS

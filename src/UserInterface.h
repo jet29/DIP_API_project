@@ -14,6 +14,7 @@ public:
 	static int listbox_item_current, listbox_sobel_gradient;
 	static int kernelwidth, kernelheight;
 	static bool b_squareMatrix;
+	static float LoG_scale;
 private:
 	GLuint histogram;
 public:

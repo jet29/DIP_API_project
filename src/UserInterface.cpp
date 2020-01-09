@@ -4,7 +4,9 @@ int UI::listbox_item_current = 0;
 int UI::listbox_sobel_gradient = 0;
 int UI::kernelheight = 3;
 int UI::kernelwidth  = 3;
+float UI::LoG_scale = 0.75f;
 bool UI::b_squareMatrix = 1;
+
 
 UI::UI() {
 	histogram = 0;
@@ -53,6 +55,9 @@ void UI::ImGuiDraw() {
 				kernelheight = kernelwidth;
 			}
 			ImGui::Checkbox("Square Matrix", &b_squareMatrix);
+			if (listbox_item_current == 9) {
+				ImGui::SliderFloat("Scale", &LoG_scale, 0.5f, 1.1f, "%.3f");
+			}
 		}
 	}
 

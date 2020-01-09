@@ -161,6 +161,8 @@
     <None Include="assets\shaders\basic.vert" />
     <None Include="assets\shaders\blackandwhite.frag" />
     <None Include="assets\shaders\blackandwhite.vert" />
+    <None Include="assets\shaders\gaussianLaplace.frag" />
+    <None Include="assets\shaders\gaussianLaplace.vert" />
     <None Include="assets\shaders\grayscale.frag" />
     <None Include="assets\shaders\grayscale.vert" />
     <None Include="assets\shaders\kernelTest.frag" />

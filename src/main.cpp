@@ -183,6 +183,7 @@ void renderToTexture(){
 		api.median(imageID);
 		break;
 	case GAUSSIAN:
+		api.c = UI::LoG_scale;
 		api.gaussianLaplace(imageID);
 		break;
 	}
