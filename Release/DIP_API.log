@@ -1,0 +1,17 @@
+﻿  dimg.cpp
+  imgui.cpp
+  imgui_demo.cpp
+  imgui_draw.cpp
+  imgui_impl_glfw.cpp
+  imgui_impl_opengl3.cpp
+  imgui_widgets.cpp
+  main.cpp
+  Shader.cpp
+  UserInterface.cpp
+  stb_image.cpp
+  glad.c
+  Generating code
+  Previous IPDB not found, fall back to full compilation.
+  All 1643 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  DIP_API.vcxproj -> C:\Users\AlchenTheCat\Documents\UNIVERSIDAD\Semestre VIII\Topicos de computacion grafica\Proyecto1\Release\DIP_API.exe

@@ -1,12 +1,1 @@
-﻿  dimg.cpp
-C:\Users\frank\Desktop\test\src\dimg.cpp(461,20): warning C4244: '=': conversión de 'int' a '_Ty'; posible pérdida de datos
-          with
-          [
-              _Ty=float
-          ]
-C:\Users\frank\Desktop\test\src\dimg.cpp(468,20): warning C4244: '=': conversión de 'int' a '_Ty'; posible pérdida de datos
-          with
-          [
-              _Ty=float
-          ]
-  DIP_API.vcxproj -> C:\Users\frank\Desktop\test\Debug\DIP_API.exe
+﻿  DIP_API.vcxproj -> C:\Users\AlchenTheCat\Documents\UNIVERSIDAD\Semestre VIII\Topicos de computacion grafica\Proyecto1\Debug\DIP_API.exe
