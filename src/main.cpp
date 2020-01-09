@@ -125,6 +125,7 @@ bool init()
 
     // Loads the texture into the GPU
 	imageID = api.loadImage("assets/images/zelda.jpg");
+	ui->setHistogram(imageID);
 
     return true;
 }
@@ -287,6 +288,7 @@ bool setFrameBuffer() {
 
 int main(int argc, char const *argv[])
 {
+	ui = new UI();
     // Initialize all the app components
     if (!init())
     {

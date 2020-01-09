@@ -249,7 +249,6 @@ void DIMG::roberts(GLuint image) {
 		flag = 1;
 		k_size = size;
 	}
-	currentShader = DIMG_ROBERTS_GRAD;
 	shader = new Shader("assets/shaders/roberts.vert", "assets/shaders/roberts.frag");
 	shader->use();
 	// Send image to GPU
@@ -290,9 +289,13 @@ void DIMG::prewitt(GLuint image) {
 }
 
 void DIMG::mean(GLuint image) {
-	setKernel();
+	if (!flag || (flag == 1 && currentShader != DIMG_MEAN_BLUR) || k_size != size) {
+		currentShader = DIMG_MEAN_BLUR;
+		setKernel();
+		flag = 1;
+		k_size = size;
+	}
 	shader = new Shader("assets/shaders/mean.vert", "assets/shaders/mean.frag");
-	currentShader = DIMG_MEAN_BLUR;
 	shader->use();
 	// Send image to GPU
 	shader->setInt("image", 0);
@@ -306,17 +309,15 @@ void DIMG::mean(GLuint image) {
 }
 
 void DIMG::median(GLuint image) {
-	setKernel();
 	shader = new Shader("assets/shaders/median.vert", "assets/shaders/median.frag");
 	currentShader = DIMG_MEDIAN_BLUR;
 	shader->use();
 	// Send image to GPU
 	shader->setInt("image", 0);
-	shader->setInt("matrix", 1);
+	shader->setInt("kWidth", size.x);
+	shader->setInt("kHeight", size.y);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, kernel);
 }
 
 void DIMG::gaussianLaplace(GLuint image) {
@@ -337,27 +338,6 @@ void DIMG::setKernel(){
 	// Initialize Kernel information
 
 	switch (currentShader) {
-	case DIMG_MEDIAN_BLUR: {
-		kernelData = vector<int>(49, 0);
-		// ATTENTION: this is not median blur
-		//for (int i = 0; i < size.x; i++) {
-		//	for (int j = 0; j < size.y; j++) {
-		//		// m[i][j] = m[i * 7 + j] 
-		//		// i y j empiezan en 0
-		//		kernelData[i * 7 + j] = 1;
-		//	}
-		//}
-		// Textures for median blur
-		glGenTextures(1, &kernel);
-		glBindTexture(GL_TEXTURE_1D, kernel);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32I, 49, 0, GL_RED_INTEGER, GL_INT, kernelData.data());
-		glBindTexture(GL_TEXTURE_1D, 0);
-		break;
-	}
 	case DIMG_MEAN_BLUR: {
 		kernelData = vector<int>(49, 0);
 		for (int i = 0; i < size.x; i++) {

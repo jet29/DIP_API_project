@@ -6,16 +6,20 @@
 #include "glm/glm.hpp"
 #include <GLFW/glfw3.h>
 #include <string>
+#include <stb_image.h>
 
 class UI{
 public:
-	UI();	
-	bool initImGui(GLFWwindow* window);
-	void ImGuiDraw();
-	void ImGuiTerminate();
+
 	static int listbox_item_current, listbox_sobel_gradient;
 	static int kernelwidth, kernelheight;
 	static bool b_squareMatrix;
 private:
-	
+	GLuint histogram;
+public:
+	UI();
+	bool initImGui(GLFWwindow* window);
+	void ImGuiDraw();
+	void ImGuiTerminate();
+	void setHistogram(GLuint histogram);
 };

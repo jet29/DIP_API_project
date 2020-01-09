@@ -7,6 +7,7 @@ int UI::kernelwidth  = 3;
 bool UI::b_squareMatrix = 1;
 
 UI::UI() {
+	histogram = 0;
 }
 
 bool UI::initImGui(GLFWwindow* window) {
@@ -55,6 +56,11 @@ void UI::ImGuiDraw() {
 		}
 	}
 
+	ImGui::Separator();
+	if (ImGui::CollapsingHeader("Histogram", ImGuiTreeNodeFlags_CollapsingHeader))
+	{
+		ImGui::Image((void*)histogram, ImVec2(312, 150));
+	}
 	ImGui::End();
 
 	// Render dear imgui into screen
@@ -66,4 +72,8 @@ void UI::ImGuiTerminate() {
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
+}
+
+void UI::setHistogram(GLuint histogram){
+	this->histogram = histogram;
 }

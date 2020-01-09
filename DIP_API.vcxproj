@@ -167,6 +167,8 @@
     <None Include="assets\shaders\kernelTest.vert" />
     <None Include="assets\shaders\mean.frag" />
     <None Include="assets\shaders\mean.vert" />
+    <None Include="assets\shaders\median.frag" />
+    <None Include="assets\shaders\median.vert" />
     <None Include="assets\shaders\negative.frag" />
     <None Include="assets\shaders\negative.vert" />
     <None Include="assets\shaders\prewitt.frag" />

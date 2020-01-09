@@ -63,6 +63,8 @@
     <None Include="assets\shaders\prewitt.vert" />
     <None Include="assets\shaders\roberts.frag" />
     <None Include="assets\shaders\roberts.vert" />
+    <None Include="assets\shaders\median.frag" />
+    <None Include="assets\shaders\median.vert" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">
