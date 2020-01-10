@@ -20,6 +20,13 @@ void onKeyPressCallback(GLFWwindow* window, int key, int scancode, int action, i
 		case GLFW_KEY_L:
 			glDeleteTextures(1, &imageID);
 			api.loadImage();
+			ui->setHistogram(imageID);
+			glm::ivec2 res = api.getImgResolution();
+			UI::res[0] = res.x;
+			UI::res[1] = res.y;
+			UI::bpp = api.getImageBPP();
+			UI::dpi = api.getImageDPI();
+			UI::uniqueColors = api.getImageUniqueColors();
 			break;
 		case GLFW_KEY_T:
 			std::cout << "Tecnica: " << UI::listbox_item_current << std::endl;
@@ -111,7 +118,7 @@ void buildGeometry()
 bool init()
 {
     // Initialize the window, and the glad components
-    if (!initWindow() || !initGlad() || !setFrameBuffer() || !ui->initImGui(window))
+    if (!initWindow() || !initGlad() || !setFrameBuffer(dsTexture1) || !ui->initImGui(window))
         return false;
 
     // Initialize the opengl context
@@ -125,8 +132,13 @@ bool init()
 
     // Loads the texture into the GPU
 	imageID = api.loadImage("assets/images/zelda.jpg");
-	ui->setHistogram(imageID);
-
+	ui->setHistogram(api.getHistogram(0));
+	glm::ivec2 res = api.getImgResolution();
+	UI::res[0] = res.x;
+	UI::res[1] = res.y;
+	UI::bpp	   = api.getImageBPP();
+	UI::dpi    = api.getImageDPI();
+	UI::uniqueColors = api.getImageUniqueColors();
     return true;
 }
 
@@ -140,7 +152,7 @@ void processKeyboardInput(GLFWwindow *window)
 	// Save current image
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 	{
-		api.saveImage(dsTexture);
+		api.saveImage(dsTexture1);
 	}
 	if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS)
 	{
@@ -186,24 +198,42 @@ void renderToTexture(){
 		api.c = UI::LoG_scale;
 		api.gaussianLaplace(imageID);
 		break;
-	}
-	// Binds the vertex array to be drawn
-	glBindVertexArray(VAO);
-	// Render triangle's geometry
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	glBindVertexArray(0);
-}
+	case TOON_SHADING:
+		glDeleteFramebuffers(1, &framebuffer);
+		// First Pass
+		setFrameBuffer(dsTexture2);
+		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+		// Clears the color and depth buffers from the frame buffer
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		api.setKernelSize(5, 5);
+		api.median(imageID);
+		// Binds the vertex array to be drawn
+		glBindVertexArray(VAO);
+		// Render triangle's geometry
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glBindVertexArray(0);
+		glDeleteFramebuffers(1, &framebuffer);
 
-void renderToonShading() {
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-	// The texture we're going to render to
-	glGenTextures(1, &medianIMG);
-	// "Bind" the newly created texture : all future texture functions will modify this texture
-	glBindTexture(GL_TEXTURE_2D, medianIMG);
-	glFramebufferTexture(framebuffer,GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, medianIMG);
-	// Clears the color and depth buffers from the frame buffer
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	api.median(imageID);
+		// Second Pass
+		setFrameBuffer(dsTexture3);
+		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+		// Clears the color and depth buffers from the frame buffer
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		api.sobel(imageID);
+		// Binds the vertex array to be drawn
+		glBindVertexArray(VAO);
+		// Render triangle's geometry
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glBindVertexArray(0);
+		glDeleteFramebuffers(1, &framebuffer);
+
+		// Third Pass
+		setFrameBuffer(dsTexture1);
+		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+		// Clears the color and depth buffers from the frame buffer
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		api.toonShading(imageID, dsTexture2, dsTexture3);
+	}
 	// Binds the vertex array to be drawn
 	glBindVertexArray(VAO);
 	// Render triangle's geometry
@@ -219,7 +249,7 @@ void forwardRendering() {
 	shader->use();
 	shader->setInt("image", 0);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, medianIMG);
+	glBindTexture(GL_TEXTURE_2D, dsTexture1);
 	//Binds the vertex array to be drawn
 	glBindVertexArray(VAO);
 	// Renders the triangle geometry
@@ -230,10 +260,7 @@ void forwardRendering() {
 void render()
 {
 	// Deferred shading
-	//renderToTexture();
-
-	// Complex technique
-	renderToonShading();
+	renderToTexture();
 
 	// Forward rendering
 	forwardRendering();
@@ -269,14 +296,14 @@ void update()
     }
 }
 
-bool setFrameBuffer() {
+bool setFrameBuffer(GLuint &texture) {
 	glGenFramebuffers(1, &framebuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
 	// The texture we're going to render to
-	glGenTextures(1, &dsTexture);
+	glGenTextures(1, &texture);
 	// "Bind" the newly created texture : all future texture functions will modify this texture
-	glBindTexture(GL_TEXTURE_2D, dsTexture);
+	glBindTexture(GL_TEXTURE_2D, texture);
 
 	// Give an empty image to OpenGL (Which is done with last "0")
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, windowWidth, windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
@@ -293,7 +320,7 @@ bool setFrameBuffer() {
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);
 
 	// Frame buffer configuration
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, dsTexture, 0);
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
 
 	// Set list of draw buffers
 	GLenum DrawBuffers[1] = { GL_COLOR_ATTACHMENT0 };

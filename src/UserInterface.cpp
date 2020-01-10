@@ -6,7 +6,10 @@ int UI::kernelheight = 3;
 int UI::kernelwidth  = 3;
 float UI::LoG_scale = 0.75f;
 bool UI::b_squareMatrix = 1;
-
+int UI::res[] = { 0,0 };
+int UI::bpp = 0;
+int UI::dpi = 0;
+long UI::uniqueColors = 0;
 
 UI::UI() {
 	histogram = 0;
@@ -62,9 +65,17 @@ void UI::ImGuiDraw() {
 	}
 
 	ImGui::Separator();
-	if (ImGui::CollapsingHeader("Histogram", ImGuiTreeNodeFlags_CollapsingHeader))
+	if (ImGui::CollapsingHeader("Metadata", ImGuiTreeNodeFlags_CollapsingHeader))
 	{
-		ImGui::Image((void*)histogram, ImVec2(312, 150));
+		if (ImGui::CollapsingHeader("Histogram", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Image((void*)histogram, ImVec2(312, 150));
+		}
+			ImGui::Text("Resolution: %ix%i", res[0], res[1]);
+			ImGui::Text("Bits per pixel: %i bpp", bpp);
+			ImGui::Text("Unique colours: %i", uniqueColors);
+			ImGui::Text("Dots per inch: %i dpi", dpi);
+
 	}
 	ImGui::End();
 

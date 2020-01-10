@@ -29,7 +29,7 @@ unsigned int VAO;
 unsigned int imageID;
 // Deferred shading textures, buffers
 GLuint framebuffer, depthBuffer;
-GLuint dsTexture, medianIMG;
+GLuint dsTexture1, dsTexture2, dsTexture3;
 
 /**
  * Handles the window resize
@@ -102,7 +102,7 @@ void update();
  * Set OpenGL configuration for a
  * custom Frame Buffer
  * */
-bool setFrameBuffer();
+bool setFrameBuffer(GLuint& texture);
 
 /**
  * App starting point

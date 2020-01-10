@@ -12,19 +12,11 @@ uniform int kHeight;
 out vec4 color;
 
 void main(){
-	vec3 texColor  = texture(image,vTexPos).xyz;
 	ivec2 texSize  = textureSize(image, 0);
 	ivec2 texIndex = ivec2(vTexPos.xy * vec2(texSize.xy));
 	ivec2 pivot = ivec2(kWidth/2,kHeight/2);
-
 	vec3 c_array[49];
-
 	
-	for(int i=0;i<49;i++){
-		c_array[i] = vec3(0,0,0);
-	}
-	
-
     int k = 0;
 	// Kernel application
 	for (int i=0 ;i<kWidth;i++){

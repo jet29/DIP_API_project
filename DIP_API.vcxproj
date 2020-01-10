@@ -179,6 +179,8 @@
     <None Include="assets\shaders\roberts.vert" />
     <None Include="assets\shaders\sobel.frag" />
     <None Include="assets\shaders\sobel.vert" />
+    <None Include="assets\shaders\toonshading.frag" />
+    <None Include="assets\shaders\toonshading.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

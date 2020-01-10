@@ -15,6 +15,9 @@ public:
 	static int kernelwidth, kernelheight;
 	static bool b_squareMatrix;
 	static float LoG_scale;
+	static int res[2];
+	static int bpp,dpi;
+	static long uniqueColors;
 private:
 	GLuint histogram;
 public:

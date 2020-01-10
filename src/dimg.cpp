@@ -17,6 +17,9 @@ DIMG::DIMG(){
 	flag = 0;
 	c = 1.0f;
 	cc = c;
+	res = glm::ivec2(0, 0);
+	bpp = 0;
+	dpi = 0;
 }
 
 DIMG::~DIMG(){
@@ -64,6 +67,51 @@ void DIMG::setKernelSize(int h, int w) {
 
 glm::ivec2 DIMG::getKernelSize() {
 	return size;
+}
+
+glm::ivec2 DIMG::getImgResolution() {
+	return res;
+}
+
+int DIMG::getImageBPP() {
+	return bpp;
+}
+
+int DIMG::getImageDPI() {
+	return dpi;
+}
+
+void DIMG::computeDPI() {
+	dpi = (int)glm::round((float)res.x * 25.4 / (float)(res.x * 0.264583));
+}
+
+long DIMG::getImageUniqueColors() {
+	return uniqueColors;
+}
+
+GLuint DIMG::getHistogram(int index) {
+	index = index < 0 ? 0 : index;
+	return histogram[index];
+}
+
+int _3DRGBto1DRGB(int x, int y, int z) {
+	return (255 * 255 * z) + (255 * y) + x;
+}
+
+void DIMG::computeUniqueColors() {
+	std::vector<char> color = std::vector<char>(256 * 256 * 256, 0);
+	int totalBytes = res.x * res.y * 3;
+	int pos,x,y,z;
+	for (int i = 0; i < totalBytes; i+=3) {
+		x = imageData[i];
+		y = imageData[i + 1];
+		z = imageData[i + 2];
+		pos = _3DRGBto1DRGB(x, y, z);
+		if (color[pos] == 0) {
+			color[pos] = 1;
+			uniqueColors++;
+		}
+	}
 }
 
 GLuint DIMG::loadImage(){
@@ -124,17 +172,15 @@ GLuint DIMG::loadImage(const char* path) {
 	unsigned int id;
 	// Creates the texture on GPU
 	glGenTextures(1, &id);
-	// Loads the texture
-	int textureWidth, textureHeight, numberOfChannels;
 	// Flips the texture when loads it because in opengl the texture coordinates are flipped
 	stbi_set_flip_vertically_on_load(true);
 	// Loads the texture file data
-	unsigned char *data = stbi_load(path, &textureWidth, &textureHeight, &numberOfChannels, 0);
-	if (data)
+	imageData = stbi_load(path, &res.x, &res.y, &bpp, 0);
+	if (imageData)
 	{
 		// Gets the texture channel format
 		GLenum format;
-		switch (numberOfChannels)
+		switch (bpp)
 		{
 		case 1:
 			format = GL_RED;
@@ -146,11 +192,11 @@ GLuint DIMG::loadImage(const char* path) {
 			format = GL_RGBA;
 			break;
 		}
-
+		bpp = (int) pow(2, bpp);
 		// Binds the texture
 		glBindTexture(GL_TEXTURE_2D, id);
 		// Creates the texture
-		glTexImage2D(GL_TEXTURE_2D, 0, format, textureWidth, textureHeight, 0, format, GL_UNSIGNED_BYTE, data);
+		glTexImage2D(GL_TEXTURE_2D, 0, format, 800, 600, 0, format, GL_UNSIGNED_BYTE, imageData);
 		// Creates the texture mipmaps
 		glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -165,9 +211,12 @@ GLuint DIMG::loadImage(const char* path) {
 		std::cout << "ERROR:: Unable to load texture " << path << std::endl;
 		glDeleteTextures(1, &id);
 	}
-	// We dont need the data texture anymore because is loaded on the GPU
-	stbi_image_free(data);
-
+	//// We dont need the data texture anymore because is loaded on the GPU
+	//stbi_image_free(imageData);
+	// Compute histogram
+	computeHistogram(id);
+	computeDPI();
+	computeUniqueColors();
 	return id;
 }
 
@@ -345,25 +394,19 @@ void DIMG::gaussianLaplace(GLuint image) {
 	glBindTexture(GL_TEXTURE_1D, gx);
 }
 
-void DIMG::toonShading(GLuint image) {
-	if (!flag || (flag == 1 && currentShader != DIMG_LOG_GRAD) || k_size != size || cc != c) {
-		currentShader = DIMG_LOG_GRAD;
-		setKernel();
-		flag = 1;
-		k_size = size;
-		cc = c;
-	}
-	shader = new Shader("assets/shaders/gaussianLaplace.vert", "assets/shaders/gaussianLaplace.frag");
+void DIMG::toonShading(GLuint image, GLuint median, GLuint sobel) {
+	shader = new Shader("assets/shaders/toonshading.vert", "assets/shaders/toonshading.frag");
 	shader->use();
 	// Send image to GPU
 	shader->setInt("image", 0);
-	shader->setInt("gx", 1);
-	shader->setInt("kWidth", size.x);
-	shader->setInt("kHeight", size.y);
+	shader->setInt("median", 1);
+	shader->setInt("sobel", 2);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image);
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_1D, gx);
+	glBindTexture(GL_TEXTURE_2D, median);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, sobel);
 }
 
 void DIMG::setKernel(){
@@ -479,7 +522,7 @@ void DIMG::setKernel(){
 		for (int i = 0, j = 0; i < size.x; i++, j++, val--) {
 			if (!val)
 				val--;
-			gx[i * 7 + j] = val;
+			gx[i * 7 + j] = (float)val;
 		}
 
 		val = pivot.y;
@@ -677,72 +720,48 @@ std::string DIMG::savePath(){
 	return fileNameStr;
 }
 
-void DIMG::createHistogram(GLuint image) {
+void DIMG::computeHistogram(GLuint image) {
 
 	cout << "Creando histograma" << endl;
 
-	//suppose image size is 800x600 just for practice purposes
-
-	int imageWidth = 800;
-	int imageHeight = 600;
-
-	GLubyte* data = new GLubyte[imageWidth * imageHeight * 3];
+	GLubyte* data = new GLubyte[800 * 600 * 3];
 	glBindTexture(GL_TEXTURE_2D, image);
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
-	//int numChannels = 3;
-	//string imgPath = saveImage(image);
-	//unsigned char* data = stbi_load(imgPath.c_str(), &imageWidth, &imageHeight, &numChannels, 0);
+	unsigned char *redHistogram = new unsigned char(800 * 600 * 255);
 
-
-	if (data) {
-
-		cout << "imagen a histogramear carga" << endl;
-
-		unsigned char* redHistogram = new unsigned char[imageWidth * imageHeight * 255]; //for channel
-
-		//memset(redHistogram, NULL, sizeof(redHistogram));
-		for (int i = 0; i < imageWidth * imageHeight * 255; i++) {
-			redHistogram[i] = 255;
-		}
-
-		int totalBytes = imageWidth * imageHeight * 3;
-
-		//structure to check top for all colors
-		int tops[256];
-		memset(tops, 0, sizeof(tops));
-
-		int histogramWidth = 255;
-		int histogramHeight = imageWidth * imageHeight;
-
-		int maxHeight = 0;
-
-
-		for (int i = 0; i < totalBytes; i += 3) {
-
-			//get red from image
-			unsigned char redColor = data[i];
-
-			//cout << "tops de red color: "<<tops[redColor] << endl;
-
-			//assign red to image
-			redHistogram[tops[redColor] * 255 + redColor] = 0;
-
-			tops[redColor]++;
-
-			if (tops[redColor] > maxHeight) maxHeight = tops[redColor];
-
-		}
-
-
-		cout << "saving image" << endl;
-		// flag is non-zero to flip data vertically
-		//stbi_flip_vertically_on_write(true);
-		std::string path = savePath();
-		stbi_write_jpg(path.c_str(), histogramWidth, maxHeight, 1, redHistogram, 100);
-
-		cout << "histogram saved" << endl;
+	for (int i = 0; i < 800 * 600 * 255;i++) {
+		redHistogram[i] = 255;
 	}
-	// We dont need the data texture anymore because is loaded on the GPU
-	stbi_image_free(data);
+
+	//int totalBytes = 800 * 600 * 3;
+
+	////structure to check top for all colors
+	//int tops[256];
+	//memset(tops, 0, sizeof(tops));
+	//GLubyte redColor;
+	//for (int i = 0; i < totalBytes; i += 3) {
+
+	//	//get red from image
+	//	redColor = data[i];
+
+	//	//assign red to image
+	//	redHistogram[tops[redColor] * 255 + redColor] = 0;
+
+	//	tops[redColor]++;
+	//}
+
+
+	//cout << "saving image" << endl;
+	//glGenTextures(1, &histogram[0]);
+	//glBindTexture(GL_TEXTURE_2D, histogram[0]);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 800,600, 0, GL_RED, GL_UNSIGNED_BYTE, redHistogram);
+	//glBindTexture(GL_TEXTURE_1D, 0);
+
+	//cout << "histogram saved" << endl;
+
 }

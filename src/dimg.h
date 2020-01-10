@@ -30,7 +30,11 @@ private:
 	int currentShader;
 	bool flag;
 	glm::ivec2 size,k_size;
-
+	glm::ivec2 res;
+	int bpp,dpi;
+	long uniqueColors;
+	unsigned char* imageData;
+	GLuint histogram[4];
 public:
 	float c,cc;
 	Shader *shader;
@@ -46,7 +50,17 @@ public:
 	 * */
 	void setKernelSize(int h, int w);
 
+	GLuint getHistogram(int index);
+
 	glm::ivec2 getKernelSize();
+
+	glm::ivec2 getImgResolution();
+
+	int getImageDPI();
+
+	int getImageBPP();
+
+	long getImageUniqueColors();
 
 	/**
 	 * Overloaded function
@@ -117,7 +131,7 @@ public:
 	/**
 	 *
 	 * */
-	void toonShading(GLuint image);
+	void toonShading(GLuint image, GLuint median, GLuint sobel);
 
 	/**
 	 * Apply sobel border technique
@@ -135,9 +149,11 @@ public:
 	 * */
 	std::string savePath();
 
-	void createHistogram(GLuint image);
+	void computeHistogram(GLuint image);
 
 private:
 	// PRIVATE FUNCTIONS
 	void setKernel();
+	void computeDPI();
+	void computeUniqueColors();
 };	
