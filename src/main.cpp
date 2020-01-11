@@ -171,13 +171,13 @@ void renderToTexture(){
 		api.color(imageID);
 		break;
 	case NEGATIVE: 
-		api.negative(imageID);
+		api.negative(imageID,UI::hardwareAcceleration);
 		break;
 	case GRAYSCALE: 
-		api.grayscale(imageID);
+		api.grayscale(imageID, UI::hardwareAcceleration);
 		break;
 	case BLACKANDWHITE:
-		api.blackandwhite(imageID);
+		api.blackandwhite(imageID, UI::hardwareAcceleration);
 		break;
 	case SOBEL:
 		api.sobel(imageID);
@@ -189,7 +189,7 @@ void renderToTexture(){
 		api.prewitt(imageID);
 		break;
 	case MEAN:
-		api.mean(imageID);
+		api.mean(imageID, UI::hardwareAcceleration);
 		break;
 	case MEDIAN:
 		api.median(imageID);
@@ -275,6 +275,8 @@ void render()
 void updateFromInterface() {
 	if (api.getKernelSize() != glm::ivec2(UI::kernelheight,UI::kernelwidth))
 		api.setKernelSize(UI::kernelheight, UI::kernelwidth);
+	api.setIntThreshold(UI::i_threshold);
+	api.setFloatThreshold(UI::f_threshold);
 }
 
 void update()

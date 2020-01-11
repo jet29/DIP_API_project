@@ -8,6 +8,7 @@
 
 using std::vector;
 
+#define DIMG_NONE 0x00000
 #define DIMG_COLOR 0x00100
 #define DIMG_NEGATIVE 0x00101
 #define DIMG_GRAYSCALE 0x00102
@@ -25,7 +26,8 @@ using std::vector;
 class DIMG{
 private:
 	
-	vector<int> kernelData;
+	vector<int> kernelData,kData;
+	vector<float> gxData, gyData;
 	GLuint kernel, gx, gy;
 	int currentShader;
 	bool flag;
@@ -34,7 +36,9 @@ private:
 	int bpp,dpi;
 	long uniqueColors;
 	unsigned char* imageData;
-	GLuint histogram[4];
+	GLuint histogram[4], cpuTexture;
+	float f_threshold;
+	int i_threshold, ctl_threshold;
 public:
 	float c,cc;
 	Shader *shader;
@@ -62,6 +66,10 @@ public:
 
 	long getImageUniqueColors();
 
+	void setIntThreshold(int threshold);
+
+	void setFloatThreshold(float threshold);
+
 	/**
 	 * Overloaded function
 	 * Loads an image as a texture into the GPU
@@ -83,19 +91,25 @@ public:
 	std::string saveImage(GLuint image);
 
 	/**
+	 * Render image
+	 * @param{GLuint} destiny image
+	 * */
+	void color(GLuint image);
+
+	/**
 	 *
 	 * */
-	void negative(GLuint image);
+	void negative(GLuint image, bool hardwareAcceleration);
 	
 	/**
 	 *
 	 * */
-	void grayscale(GLuint image);
+	void grayscale(GLuint image, bool hardwareAcceleration);
 	
 	/**
 	 *
 	 * */
-	void blackandwhite(GLuint image);
+	void blackandwhite(GLuint image, bool hardwareAcceleration);
 
 	/**
 	 * Apply sobel border technique
@@ -116,7 +130,7 @@ public:
 	/**
 	 *
 	 * */
-	void mean(GLuint image);
+	void mean(GLuint image, bool hardwareAcceleration);
 
 	/**
 	 *
@@ -132,12 +146,6 @@ public:
 	 *
 	 * */
 	void toonShading(GLuint image, GLuint median, GLuint sobel);
-
-	/**
-	 * Apply sobel border technique
-	 * @param{GLuint} destiny image
-	 * */
-	void color(GLuint image);
 	
 	/**
 	 *
@@ -153,7 +161,9 @@ public:
 
 private:
 	// PRIVATE FUNCTIONS
-	void setKernel();
+	void setKernel(bool hardwareAcceleration);
 	void computeDPI();
 	void computeUniqueColors();
+	void createTexture2D(GLuint& target, GLubyte* data, glm::ivec2 size);
+	bool isInImage(int x, int y);
 };	

@@ -18,6 +18,9 @@ public:
 	static int res[2];
 	static int bpp,dpi;
 	static long uniqueColors;
+	static bool hardwareAcceleration;
+	static float f_threshold;
+	static int   i_threshold;
 private:
 	GLuint histogram;
 public:

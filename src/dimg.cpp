@@ -14,7 +14,7 @@ DIMG::DIMG(){
 	// Default 3x3 Kernel's size
 	size = glm::ivec2(3);
 	k_size = size;
-	flag = 0;
+	currentShader = DIMG_NONE;
 	c = 1.0f;
 	cc = c;
 	res = glm::ivec2(0, 0);
@@ -23,6 +23,10 @@ DIMG::DIMG(){
 }
 
 DIMG::~DIMG(){
+}
+
+bool DIMG::isInImage(int x, int y) {
+	return x < 0 || x > (res.x-1) * 3 || y < 0 || y >(res.y - 1) ? false : true;
 }
 
 void DIMG::reloadShader() {
@@ -89,6 +93,14 @@ long DIMG::getImageUniqueColors() {
 	return uniqueColors;
 }
 
+void DIMG::setIntThreshold(int threshold) {
+	i_threshold = threshold;
+}
+
+void DIMG::setFloatThreshold(float threshold) {
+	f_threshold = threshold;
+}
+
 GLuint DIMG::getHistogram(int index) {
 	index = index < 0 ? 0 : index;
 	return histogram[index];
@@ -112,6 +124,29 @@ void DIMG::computeUniqueColors() {
 			uniqueColors++;
 		}
 	}
+}
+
+void DIMG::createTexture2D(GLuint &target, GLubyte* data, glm::ivec2 size){
+	// Binds the texture
+	glBindTexture(GL_TEXTURE_2D, target);
+	// Creates the texture
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, res.x, res.y, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	// Creates the texture mipmaps
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// Set the filtering parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glGenTextures(1, &target);
+	glBindTexture(GL_TEXTURE_2D, target);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, size.x, size.y, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 GLuint DIMG::loadImage(){
@@ -196,7 +231,7 @@ GLuint DIMG::loadImage(const char* path) {
 		// Binds the texture
 		glBindTexture(GL_TEXTURE_2D, id);
 		// Creates the texture
-		glTexImage2D(GL_TEXTURE_2D, 0, format, 800, 600, 0, format, GL_UNSIGNED_BYTE, imageData);
+		glTexImage2D(GL_TEXTURE_2D, 0, format, res.x, res.y, 0, format, GL_UNSIGNED_BYTE, imageData);
 		// Creates the texture mipmaps
 		glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -242,8 +277,20 @@ void DIMG::color(GLuint image) {
 	glBindTexture(GL_TEXTURE_2D, image);
 }
 
-void DIMG::negative(GLuint image){
-	shader = new Shader("assets/shaders/negative.vert", "assets/shaders/negative.frag");
+void DIMG::negative(GLuint image, bool hardwareAcceleration){
+	if (hardwareAcceleration)
+		shader = new Shader("assets/shaders/negative.vert", "assets/shaders/negative.frag");
+	else {
+		if (currentShader != DIMG_NEGATIVE) {
+			unsigned char* negative = new unsigned char[res.x * res.y * 3];
+			memcpy(negative, imageData, res.x * res.y * 3);
+			for (int i = 0; i < res.x*res.y*3; i++)
+				negative[i] = 255 - imageData[i];
+			createTexture2D(cpuTexture, negative, res);
+		}
+		shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+		image = cpuTexture;
+	}
 	currentShader = DIMG_NEGATIVE;
 	shader->use();
 	// Send image to GPU
@@ -252,8 +299,30 @@ void DIMG::negative(GLuint image){
 	glBindTexture(GL_TEXTURE_2D, image);
 }
 
-void DIMG::grayscale(GLuint image) {
-	shader = new Shader("assets/shaders/grayscale.vert", "assets/shaders/grayscale.frag");
+void DIMG::grayscale(GLuint image, bool hardwareAcceleration) {
+	if (hardwareAcceleration)
+		shader = new Shader("assets/shaders/grayscale.vert", "assets/shaders/grayscale.frag");
+	else {
+		if (currentShader != DIMG_GRAYSCALE) {
+			unsigned char* grayscale = new unsigned char[res.x * res.y * 3] ;
+			memcpy(grayscale, imageData, res.x * res.y * 3);
+			int gs_value;
+			for (int i = 0; i < res.x * res.y * 3 - 3; i += 3) {
+				gs_value = (int)(imageData[i] * 0.2989) + 
+						   (int)(imageData[i + 1] * 0.5870) +
+						   (int)(imageData[i + 2] * 0.1140);
+				// Red
+				grayscale[i] = gs_value;
+				// Green
+				grayscale[i + 1] = gs_value;
+				// Blue
+				grayscale[i + 2] = gs_value;
+			}
+			createTexture2D(cpuTexture, grayscale, res);
+		}
+		shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+		image = cpuTexture;
+	}
 	currentShader = DIMG_GRAYSCALE;
 	shader->use();
 	// Send image to GPU
@@ -262,12 +331,37 @@ void DIMG::grayscale(GLuint image) {
 	glBindTexture(GL_TEXTURE_2D, image);
 }
 
-void DIMG::blackandwhite(GLuint image) {
-	shader = new Shader("assets/shaders/blackandwhite.vert", "assets/shaders/blackandwhite.frag");
+void DIMG::blackandwhite(GLuint image, bool hardwareAcceleration) {
+	if (hardwareAcceleration)
+		shader = new Shader("assets/shaders/blackandwhite.vert", "assets/shaders/blackandwhite.frag");
+	else {
+		if (currentShader != DIMG_BLACKANDWHITE || ctl_threshold != i_threshold ) {
+			unsigned char* blackandwhite = new unsigned char[res.x * res.y * 3];
+			memcpy(blackandwhite, imageData, res.x * res.y * 3);
+			int gs_value, bnw;
+			ctl_threshold = i_threshold;
+			for (int i = 0; i < res.x * res.y * 3 - 3; i += 3) {
+				gs_value = (int)(imageData[i] * 0.2989) +
+					(int)(imageData[i + 1] * 0.5870) +
+					(int)(imageData[i + 2] * 0.1140);
+				bnw = gs_value > i_threshold ? 255 : 0;
+				// Red
+				blackandwhite[i]     = bnw;
+				// Green
+				blackandwhite[i + 1] = bnw;
+				// Blue
+				blackandwhite[i + 2] = bnw;
+			}
+			createTexture2D(cpuTexture, blackandwhite, res);
+		}
+		shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+		image = cpuTexture;
+	}
 	currentShader = DIMG_BLACKANDWHITE;
 	shader->use();
 	// Send image to GPU
 	shader->setInt("image", 0);
+	shader->setFloat("f_threshold", f_threshold);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image);
 }
@@ -275,7 +369,7 @@ void DIMG::blackandwhite(GLuint image) {
 void DIMG::sobel(GLuint image){
 	if(!flag || (flag == 1 && currentShader != DIMG_SOBEL_GRAD) || k_size != size){
 		currentShader = DIMG_SOBEL_GRAD;
-		setKernel();
+		setKernel(1);
 		flag = 1;
 		k_size = size;
 	}
@@ -298,7 +392,7 @@ void DIMG::sobel(GLuint image){
 void DIMG::roberts(GLuint image) {
 	if (!flag || (flag == 1 && currentShader != DIMG_ROBERTS_GRAD) || k_size != size) {
 		currentShader = DIMG_ROBERTS_GRAD;
-		setKernel();
+		setKernel(1);
 		flag = 1;
 		k_size = size;
 	}
@@ -321,7 +415,7 @@ void DIMG::roberts(GLuint image) {
 void DIMG::prewitt(GLuint image) {
 	if (!flag || (flag == 1 && currentShader != DIMG_PREWITT_GRAD) || k_size != size) {
 		currentShader = DIMG_PREWITT_GRAD;
-		setKernel();
+		setKernel(1);
 		flag = 1;
 		k_size = size;
 	}
@@ -341,24 +435,88 @@ void DIMG::prewitt(GLuint image) {
 	glBindTexture(GL_TEXTURE_1D, gy);
 }
 
-void DIMG::mean(GLuint image) {
-	if (!flag || (flag == 1 && currentShader != DIMG_MEAN_BLUR) || k_size != size) {
-		currentShader = DIMG_MEAN_BLUR;
-		setKernel();
-		flag = 1;
-		k_size = size;
+void DIMG::mean(GLuint image, bool hardwareAcceleration) {
+	if (hardwareAcceleration) {
+		if (currentShader != DIMG_MEAN_BLUR || k_size != size) {
+			currentShader = DIMG_MEAN_BLUR;
+			setKernel(hardwareAcceleration);
+			k_size = size;
+			shader = new Shader("assets/shaders/mean.vert", "assets/shaders/mean.frag");
+		}
 	}
-	shader = new Shader("assets/shaders/mean.vert", "assets/shaders/mean.frag");
-	shader->use();
-	// Send image to GPU
-	shader->setInt("image", 0);
-	shader->setInt("kernel", 1);
-	shader->setInt("kWidth", size.x);
-	shader->setInt("kHeight", size.y);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, image);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_1D, kernel);
+	else {
+		if (currentShader != DIMG_MEAN_BLUR || k_size != size) {
+			currentShader = DIMG_MEAN_BLUR;
+			setKernel(hardwareAcceleration);
+			k_size = size;
+			unsigned char* image  = new unsigned char[res.x * res.y * 3];
+			unsigned char* output = new unsigned char[res.x * res.y * 3];
+			for (int i = 0; i < res.x * res.y * 3; i++)
+				output[i] = 0;
+		//kernelData [i*7+j]
+			memcpy(image, imageData, res.x * res.y * 3);
+			glm::ivec3 mean  = glm::ivec3(0);
+			glm::ivec2 pivot = glm::ivec2(k_size.x / 2, k_size.y / 2);
+			glm::ivec2 actual_pos;
+			int row_size, kernel_offset, u,v,diff;
+
+			// Image Loop
+			for (int i = 0; i < res.x; i++) {
+				for (int j = 0; j < res.y * 3 - 3; j+= 3){
+					// pixel [i,j]
+					// Kernel Loop
+					for (int ii = 0; ii < k_size.x; ii++) {
+						for (int jj = 0; jj < k_size.y; jj++) {
+							// m[u-pivot.x][v-pivot.y] = m[(u-pivot.x)*row_size + (v-pivot.y)]
+							actual_pos = glm::ivec2(i, j);
+							row_size = res.x;
+							u = actual_pos.x + (ii - pivot.x);
+							diff = (jj - pivot.y) * 3;
+							v = actual_pos.y + diff;
+							//printf("uv(%i,%i)\n", u, v+0);
+							//printf("uv(%i,%i)\n", u, v+1);
+							//printf("uv(%i,%i)\n", u, v+2);
+							if (!isInImage(u, v)) {
+								continue;
+							}
+							//printf("uv(%i,%i)\n", u, v+0);
+							//printf("image[%i]\n", u * row_size + (v + 0));
+							// red
+							mean.r += image[u * row_size + (v + 0)] * kernelData[ii * 7 + jj];
+							// green
+							mean.g += image[u * row_size + (v + 1)] * kernelData[ii * 7 + jj];
+							// blue
+							mean.b += image[u * row_size + (v + 2)] * kernelData[ii * 7 + jj];
+						}
+						/*std::cout << "----" << std::endl;*/
+					}
+					// Average color
+					mean.r = (int)round((float) mean.r / (float)(size.x * size.y));
+					mean.g = (int)round((float) mean.g / (float)(size.x * size.y));
+					mean.b = (int)round((float) mean.b / (float)(size.x * size.y));
+					//printf("output[%i]\n", i * res.x + (j + 0));
+					output[i + (j + 0)] = mean.r;
+					output[i + (j + 1)] = mean.g;
+					output[i + (j + 2)] = mean.b;
+					//printf("xy(%i,%i) rgb(%i,%i,%i)\n", i,j,mean.r, mean.g, mean.b);
+				}
+			}
+			createTexture2D(cpuTexture, output, res);
+		}
+		shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+		image = cpuTexture;
+	}
+		currentShader = DIMG_MEAN_BLUR;
+		shader->use();
+		// Send image to GPU
+		shader->setInt("image", 0);
+		shader->setInt("kernel", 1);
+		shader->setInt("kWidth", size.x);
+		shader->setInt("kHeight", size.y);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, image);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_1D, kernel);
 }
 
 void DIMG::median(GLuint image) {
@@ -376,7 +534,7 @@ void DIMG::median(GLuint image) {
 void DIMG::gaussianLaplace(GLuint image) {
 	if (!flag || (flag == 1 && currentShader != DIMG_LOG_GRAD) || k_size != size || cc != c) {
 		currentShader = DIMG_LOG_GRAD;
-		setKernel();
+		setKernel(1);
 		flag = 1;
 		k_size = size;
 		cc = c;
@@ -409,7 +567,7 @@ void DIMG::toonShading(GLuint image, GLuint median, GLuint sobel) {
 	glBindTexture(GL_TEXTURE_2D, sobel);
 }
 
-void DIMG::setKernel(){
+void DIMG::setKernel(bool hardwareAcceleration){
 	// Initialize Kernel information
 
 	switch (currentShader) {
@@ -422,20 +580,22 @@ void DIMG::setKernel(){
 				kernelData[i * 7 + j] = 1;
 			}
 		}
-		// Textures for mean blur
-		glGenTextures(1, &kernel);
-		glBindTexture(GL_TEXTURE_1D, kernel);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32I, 49, 0, GL_RED_INTEGER, GL_INT, kernelData.data());
-		glBindTexture(GL_TEXTURE_1D, 0);
+		if (hardwareAcceleration) {
+			// Textures for mean blur
+			glGenTextures(1, &kernel);
+			glBindTexture(GL_TEXTURE_1D, kernel);
+			glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexImage1D(GL_TEXTURE_1D, 0, GL_R32I, 49, 0, GL_RED_INTEGER, GL_INT, kernelData.data());
+			glBindTexture(GL_TEXTURE_1D, 0);
+		}
 		break;
 	}
 	case DIMG_SOBEL_GRAD: {
-		std::vector<float> gx = std::vector<float>(49, 0.0f);
-		std::vector<float> gy = std::vector<float>(49, 0.0f);
+		gxData = std::vector<float>(49, 0.0f);
+		gyData = std::vector<float>(49, 0.0f);
 		glm::ivec2 pivot;
 		int ki, kj, kiikjj;
 		// Starting from kernel's center
@@ -451,16 +611,16 @@ void DIMG::setKernel(){
 				kj = j - pivot.y;
 
 				if (glm::ivec2(i, j) == pivot) {
-					gy[i * 7 + j] = 0;
-					gx[i * 7 + j] = 0;
+					gxData[i * 7 + j] = 0;
+					gyData[i * 7 + j] = 0;
 					std::cout << "0   ";
 					continue;
 				}
 				// Gx_ij = i / (i*i + j*j)
 				kiikjj = ki * ki + kj * kj;
 				//std::cout << kj << "/" << kiikjj << " ";
-				gy[i * 7 + j] = (float)ki / (float)kiikjj;
-				gx[i * 7 + j] = (float)kj / (float)kiikjj;
+				gxData[i * 7 + j] = (float)ki / (float)kiikjj;
+				gyData[i * 7 + j] = (float)kj / (float)kiikjj;
 			}
 		}
 
@@ -487,7 +647,7 @@ void DIMG::setKernel(){
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gx.data());
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gxData.data());
 		glBindTexture(GL_TEXTURE_1D, 0);
 
 		// Texture for sobel's gradient y-axis
@@ -497,13 +657,13 @@ void DIMG::setKernel(){
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gy.data());
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gyData.data());
 		glBindTexture(GL_TEXTURE_1D, 0);
 		break;
 	}
 	case DIMG_ROBERTS_GRAD: {
-		std::vector<float> gx = std::vector<float>(49, 0.0f);
-		std::vector<float> gy = std::vector<float>(49, 0.0f);
+		gxData = std::vector<float>(49, 0.0f);
+		gyData = std::vector<float>(49, 0.0f);
 		glm::ivec2 pivot;
 		int val;
 		// CASO IMPAR: Buscar el numero par mas cercano por debajo y trabajar con esa matriz
@@ -522,14 +682,14 @@ void DIMG::setKernel(){
 		for (int i = 0, j = 0; i < size.x; i++, j++, val--) {
 			if (!val)
 				val--;
-			gx[i * 7 + j] = (float)val;
+			gxData[i * 7 + j] = (float)val;
 		}
 
 		val = pivot.y;
 		for (int i = 0, j = size.y-1; i < size.x; i++, j--, val--) {
 			if (!val)
 				val--;
-			gy[i * 7 + j] = val;
+			gyData[i * 7 + j] = (float) val;
 		}
 
 
@@ -556,7 +716,7 @@ void DIMG::setKernel(){
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gx.data());
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gxData.data());
 		glBindTexture(GL_TEXTURE_1D, 0);
 
 		// Texture for sobel's gradient y-axis
@@ -566,15 +726,15 @@ void DIMG::setKernel(){
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gy.data());
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gyData.data());
 		glBindTexture(GL_TEXTURE_1D, 0);
 		break;
 	}
 	case DIMG_PREWITT_GRAD: {
 		// m[i][j] = m[i * 7 + j] 
 		// i y j empiezan en 0
-		std::vector<float> gx = std::vector<float>(49, 0.0f);
-		std::vector<float> gy = std::vector<float>(49, 0.0f);
+		gxData = std::vector<float>(49, 0.0f);
+		gyData = std::vector<float>(49, 0.0f);
 
 		glm::ivec2 pivot;
 		int ki, kj;
@@ -596,8 +756,8 @@ void DIMG::setKernel(){
 
 				// Gx_ij = i / (i*i + j*j)
 				//std::cout << kj << "/" << kiikjj << " ";
-				gx[i * 7 + j] = (float)ki;
-				gy[i * 7 + j] = (float)kj;
+				gxData[i * 7 + j] = (float)ki;
+				gyData[i * 7 + j] = (float)kj;
 
 			}
 		}
@@ -625,7 +785,7 @@ void DIMG::setKernel(){
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gx.data());
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gxData.data());
 		glBindTexture(GL_TEXTURE_1D, 0);
 
 		// Texture for prewitt's gradient y-axis
@@ -635,7 +795,7 @@ void DIMG::setKernel(){
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gy.data());
+		glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gyData.data());
 		glBindTexture(GL_TEXTURE_1D, 0);
 		break;
 	}
@@ -724,44 +884,97 @@ void DIMG::computeHistogram(GLuint image) {
 
 	cout << "Creando histograma" << endl;
 
-	GLubyte* data = new GLubyte[800 * 600 * 3];
-	glBindTexture(GL_TEXTURE_2D, image);
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	int totalBytes = res.x * res.y * 3;
+	int maxHeight = 0;
 
-	unsigned char *redHistogram = new unsigned char(800 * 600 * 255);
+	//structure to check top for all colors
+	int tops[256];
+	memset(tops, 0, sizeof(tops));
 
-	for (int i = 0; i < 800 * 600 * 255;i++) {
+	unsigned char redColor;
+
+	for (int i = 0; i < totalBytes - 3; i += 3) {
+
+		//get red from image
+		redColor = imageData[i];
+
+		tops[redColor]++;
+
+		if (tops[redColor] > maxHeight) maxHeight = tops[redColor];
+
+		//cout << tops[redColor] << endl;
+	}
+
+	/*
+
+	for (int i = 0; i < 256; i++) {
+		cout << (int)tops[i] << endl;;
+	}
+
+	*/
+
+	cout << "el tamanio maximo es: " << maxHeight << endl;
+
+	int histogramWidth = 256;
+	int histogramHeight = 150;
+	int numChannels = 3;
+
+	int totalBytesHist = histogramHeight * histogramWidth * numChannels;
+
+	unsigned char* redHistogram = new unsigned char[totalBytesHist];
+
+	for (int i = 0; i < totalBytesHist; i++) {
 		redHistogram[i] = 255;
 	}
 
-	//int totalBytes = 800 * 600 * 3;
+	int tops2[256];
+	memset(tops2, 0, sizeof(tops2));
 
-	////structure to check top for all colors
-	//int tops[256];
-	//memset(tops, 0, sizeof(tops));
-	//GLubyte redColor;
-	//for (int i = 0; i < totalBytes; i += 3) {
+	for (int i = 0; i < totalBytes - 3; i += 3) {
 
-	//	//get red from image
-	//	redColor = data[i];
+		//get red from image
+		redColor = imageData[i];
 
-	//	//assign red to image
-	//	redHistogram[tops[redColor] * 255 + redColor] = 0;
+		float ratio = (float)tops2[redColor] / (float)maxHeight;
 
-	//	tops[redColor]++;
-	//}
+		int ii = (int)(ratio * histogramHeight);
+
+		//assign red to image
+		redHistogram[ii * histogramWidth * 3 + redColor * 3] = 0;
+		redHistogram[ii * histogramWidth * 3 + redColor * 3 + 1] = 0;
+		redHistogram[ii * histogramWidth * 3 + redColor * 3 + 2] = 0;
+
+		tops2[redColor]++;
+
+		//cout << tops[redColor] << endl;
+	}
+
+	unsigned char* redHistogramFlipped = new unsigned char[totalBytesHist];
+
+	for (int i = 0; i < histogramHeight; i++) {
+
+		for (int j = 0; j < histogramWidth * 3; j++) {
+
+			unsigned char value;
+			value = redHistogram[(histogramHeight - i - 1) * histogramWidth * 3 + j];
+			redHistogramFlipped[i * histogramWidth * 3 + j] = value;
+		}
+	}
 
 
-	//cout << "saving image" << endl;
-	//glGenTextures(1, &histogram[0]);
-	//glBindTexture(GL_TEXTURE_2D, histogram[0]);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 800,600, 0, GL_RED, GL_UNSIGNED_BYTE, redHistogram);
-	//glBindTexture(GL_TEXTURE_1D, 0);
+	cout << "saving image" << endl;
+	glGenTextures(1, &histogram[0]);
+	// Binds the texture
+	glBindTexture(GL_TEXTURE_2D, histogram[0]);
+	// Creates the texture
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, histogramWidth, histogramHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, redHistogramFlipped);
+	// Creates the texture mipmaps
+	glGenerateMipmap(GL_TEXTURE_2D);
 
-	//cout << "histogram saved" << endl;
-
+	// Set the filtering parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	cout << "histogram saved" << endl;
 }

@@ -1,15 +1,18 @@
 #include "UserInterface.h"
 
-int UI::listbox_item_current = 0;
-int UI::listbox_sobel_gradient = 0;
-int UI::kernelheight = 3;
-int UI::kernelwidth  = 3;
+int   UI::listbox_item_current = 0;
+int   UI::listbox_sobel_gradient = 0;
+int   UI::kernelheight = 3;
+int   UI::kernelwidth  = 3;
 float UI::LoG_scale = 0.75f;
-bool UI::b_squareMatrix = 1;
-int UI::res[] = { 0,0 };
-int UI::bpp = 0;
-int UI::dpi = 0;
-long UI::uniqueColors = 0;
+bool  UI::b_squareMatrix = 1;
+int   UI::res[] = { 0,0 };
+int   UI::bpp = 0;
+int   UI::dpi = 0;
+long  UI::uniqueColors = 0;
+bool  UI::hardwareAcceleration = 0;
+float UI::f_threshold = 0.5f;
+int   UI::i_threshold = 122;
 
 UI::UI() {
 	histogram = 0;
@@ -39,9 +42,17 @@ void UI::ImGuiDraw() {
 						    "Mean","Median","Laplace of Gaussian", "Toon Shading"};
 
 	ImGui::Combo("Techniques\n",&listbox_item_current,items,IM_ARRAYSIZE(items));
+	ImGui::Checkbox("Hardware Acceleration", &hardwareAcceleration);
 
 	// Kernel size menu
 	int w_min=2, w_max=7, h_min=2, h_max=7;
+	if (listbox_item_current == 3) {
+		ImGui::Separator();
+		if (!hardwareAcceleration)
+			ImGui::SliderInt("Threshold", &i_threshold, 0, 255);
+		else
+			ImGui::SliderFloat("Threshold", &f_threshold, 0.0f, 1.0f,"%.2f");
+	}
 	if (listbox_item_current > 3) {
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader("Kernel Size", ImGuiTreeNodeFlags_DefaultOpen))
