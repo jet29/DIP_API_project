@@ -101,6 +101,17 @@ void DIMG::setFloatThreshold(float threshold) {
 	f_threshold = threshold;
 }
 
+void DIMG::sort(std::vector<glm::ivec3> &array){
+	glm::vec3 temp;
+	for (int i = 0; i < size.x * size.y; i++)
+		for (int j = 0; j < size.x * size.y; j++)
+			if (array[i].r > array[j].r) {
+				temp = array[j];
+				array[i] = array[j];
+				array[j] = temp;
+			}
+}
+
 GLuint DIMG::getHistogram(int index) {
 	index = index < 0 ? 0 : index;
 	return histogram[index];
@@ -436,15 +447,14 @@ void DIMG::prewitt(GLuint image) {
 }
 
 void DIMG::mean(GLuint image, bool hardwareAcceleration) {
-	if (hardwareAcceleration) {
+	if (hardwareAcceleration)
 		if (currentShader != DIMG_MEAN_BLUR || k_size != size) {
 			currentShader = DIMG_MEAN_BLUR;
 			setKernel(hardwareAcceleration);
 			k_size = size;
 			shader = new Shader("assets/shaders/mean.vert", "assets/shaders/mean.frag");
 		}
-	}
-	else {
+	else{
 		if (currentShader != DIMG_MEAN_BLUR || k_size != size) {
 			currentShader = DIMG_MEAN_BLUR;
 			setKernel(hardwareAcceleration);
@@ -506,16 +516,72 @@ void DIMG::mean(GLuint image, bool hardwareAcceleration) {
 		glBindTexture(GL_TEXTURE_1D, kernel);
 }
 
-void DIMG::median(GLuint image) {
-	shader = new Shader("assets/shaders/median.vert", "assets/shaders/median.frag");
-	currentShader = DIMG_MEDIAN_BLUR;
+void DIMG::median(GLuint image, bool hardwareAcceleration) {
+	std::cout << "arasdas" << endl;
+	if (hardwareAcceleration) {
+		if (currentShader != DIMG_MEDIAN_BLUR || k_size != size) {
+			currentShader = DIMG_MEDIAN_BLUR;
+			k_size = size;
+			shader = new Shader("assets/shaders/median.vert", "assets/shaders/median.frag");
+		}
+	}
+	else {
+		if (currentShader != DIMG_MEDIAN_BLUR || k_size != size){
+			currentShader = DIMG_MEDIAN_BLUR;
+			// History kernel size for control purposes
+			k_size = size;
+			// Output image
+			unsigned char* output = new unsigned char[res.x * res.y * 3];
+			memset(output, 0, res.x * res.y * 3);
+			// Median CPU computation 
+			std::vector<glm::ivec3> rgb_array = vector<glm::ivec3>(size.x * size.y, glm::ivec3(0));
+			glm::ivec2 pivot = glm::ivec2(k_size.x / 2, k_size.y / 2);
+			glm::ivec2 img_pos, k_pos;
+			int cols, rgb_offset, totalSize;
+			totalSize = size.x * size.y;
+			cols = res.x * 3;
+			// Image Loop
+			for (int i = 1; i < res.y; i++){
+				for (int j = 0; j < cols; j += 3){
+					img_pos = glm::ivec2(i * cols, j);
+					// Kernel Loop
+					for (int ii = 0; ii < k_size.x; ii++) {
+						for (int jj = 0; jj < k_size.y; jj++) {
+							rgb_offset = (jj - pivot.y) * 3;
+							k_pos = glm::ivec2(img_pos.x + (ii - pivot.x) * cols, img_pos.y + rgb_offset);
+							if (!isInImage(k_pos.x, k_pos.y))
+								continue;
+							rgb_array.push_back(glm::ivec3(
+								imageData[k_pos.x + (k_pos.y + 0)],
+								imageData[k_pos.x + (k_pos.y + 1)],
+								imageData[k_pos.x + (k_pos.y + 2)]
+							));
+						}
+					}
+					// Sort colors
+					sort(rgb_array);
+					// Assign median color to output image
+					output[i * cols + (j + 0)] = rgb_array[size.x * size.y / 2].r;
+					output[i * cols + (j + 1)] = rgb_array[size.x * size.y / 2].g;
+					output[i * cols + (j + 2)] = rgb_array[size.x * size.y / 2].b;
+				}
+			}
+			createTexture2D(cpuTexture, output, res);
+		}
+		shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
+		image = cpuTexture;
+	}
+	currentShader = DIMG_MEAN_BLUR;
 	shader->use();
 	// Send image to GPU
 	shader->setInt("image", 0);
+	shader->setInt("kernel", 1);
 	shader->setInt("kWidth", size.x);
 	shader->setInt("kHeight", size.y);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_1D, kernel);
 }
 
 void DIMG::gaussianLaplace(GLuint image) {

@@ -70,6 +70,8 @@ public:
 
 	void setFloatThreshold(float threshold);
 
+	void sort(std::vector<glm::ivec3> &array);
+
 	/**
 	 * Overloaded function
 	 * Loads an image as a texture into the GPU
@@ -135,7 +137,7 @@ public:
 	/**
 	 *
 	 * */
-	void median(GLuint image);
+	void median(GLuint image, bool hardwareAcceleration);
 
 	/**
 	 *

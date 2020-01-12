@@ -192,7 +192,7 @@ void renderToTexture(){
 		api.mean(imageID, UI::hardwareAcceleration);
 		break;
 	case MEDIAN:
-		api.median(imageID);
+		api.median(imageID, UI::hardwareAcceleration);
 		break;
 	case GAUSSIAN:
 		api.c = UI::LoG_scale;
@@ -206,7 +206,7 @@ void renderToTexture(){
 		// Clears the color and depth buffers from the frame buffer
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		api.setKernelSize(5, 5);
-		api.median(imageID);
+		api.median(imageID,UI::hardwareAcceleration);
 		// Binds the vertex array to be drawn
 		glBindVertexArray(VAO);
 		// Render triangle's geometry
