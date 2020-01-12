@@ -26,7 +26,7 @@ DIMG::~DIMG(){
 }
 
 bool DIMG::isInImage(int x, int y) {
-	return x < 0 || x > (res.x-1) * 3 || y < 0 || y >(res.y - 1) ? false : true;
+	return x < 0 || x >= (res.y-1)*res.x*3 || y < 0 || y >= res.x*3 ? false : true;
 }
 
 void DIMG::reloadShader() {
@@ -449,56 +449,43 @@ void DIMG::mean(GLuint image, bool hardwareAcceleration) {
 			currentShader = DIMG_MEAN_BLUR;
 			setKernel(hardwareAcceleration);
 			k_size = size;
-			unsigned char* image  = new unsigned char[res.x * res.y * 3];
 			unsigned char* output = new unsigned char[res.x * res.y * 3];
-			for (int i = 0; i < res.x * res.y * 3; i++)
-				output[i] = 0;
-		//kernelData [i*7+j]
-			memcpy(image, imageData, res.x * res.y * 3);
-			glm::ivec3 mean  = glm::ivec3(0);
+			memset(output, 0, res.x * res.y * 3);
+			glm::ivec3 mean;
 			glm::ivec2 pivot = glm::ivec2(k_size.x / 2, k_size.y / 2);
-			glm::ivec2 actual_pos;
-			int row_size, kernel_offset, u,v,diff;
-
+			glm::ivec2 img_pos, k_pos;
+			int cols, rgb_offset, totalSize;
+			totalSize = size.x * size.y;
+			cols = res.x * 3;
 			// Image Loop
-			for (int i = 0; i < res.x; i++) {
-				for (int j = 0; j < res.y * 3 - 3; j+= 3){
-					// pixel [i,j]
+			for (int i = 1; i < res.y; i++) {
+				for (int j = 0; j < cols; j+=3){
+					mean = glm::ivec3(0);
+					img_pos = glm::ivec2(i * cols, j);
 					// Kernel Loop
 					for (int ii = 0; ii < k_size.x; ii++) {
+						//printf("--------------------- KROW: %i\n", ii);
 						for (int jj = 0; jj < k_size.y; jj++) {
-							// m[u-pivot.x][v-pivot.y] = m[(u-pivot.x)*row_size + (v-pivot.y)]
-							actual_pos = glm::ivec2(i, j);
-							row_size = res.x;
-							u = actual_pos.x + (ii - pivot.x);
-							diff = (jj - pivot.y) * 3;
-							v = actual_pos.y + diff;
-							//printf("uv(%i,%i)\n", u, v+0);
-							//printf("uv(%i,%i)\n", u, v+1);
-							//printf("uv(%i,%i)\n", u, v+2);
-							if (!isInImage(u, v)) {
+							rgb_offset = (jj - pivot.y) * 3;
+							k_pos = glm::ivec2(img_pos.x + (ii - pivot.x)*cols, img_pos.y + rgb_offset);
+							if (!isInImage(k_pos.x, k_pos.y))
 								continue;
-							}
-							//printf("uv(%i,%i)\n", u, v+0);
-							//printf("image[%i]\n", u * row_size + (v + 0));
 							// red
-							mean.r += image[u * row_size + (v + 0)] * kernelData[ii * 7 + jj];
+							mean.r += imageData[k_pos.x + (k_pos.y + 0)] * kernelData[ii * 7 + jj];
 							// green
-							mean.g += image[u * row_size + (v + 1)] * kernelData[ii * 7 + jj];
+							mean.g += imageData[k_pos.x + (k_pos.y + 1)] * kernelData[ii * 7 + jj];
 							// blue
-							mean.b += image[u * row_size + (v + 2)] * kernelData[ii * 7 + jj];
+							mean.b += imageData[k_pos.x + (k_pos.y + 2)] * kernelData[ii * 7 + jj];
 						}
-						/*std::cout << "----" << std::endl;*/
+						//printf("\n");
 					}
 					// Average color
-					mean.r = (int)round((float) mean.r / (float)(size.x * size.y));
-					mean.g = (int)round((float) mean.g / (float)(size.x * size.y));
-					mean.b = (int)round((float) mean.b / (float)(size.x * size.y));
-					//printf("output[%i]\n", i * res.x + (j + 0));
-					output[i + (j + 0)] = mean.r;
-					output[i + (j + 1)] = mean.g;
-					output[i + (j + 2)] = mean.b;
-					//printf("xy(%i,%i) rgb(%i,%i,%i)\n", i,j,mean.r, mean.g, mean.b);
+					mean.r = mean.r / totalSize;
+					mean.g = mean.g / totalSize;
+					mean.b = mean.b / totalSize;
+					output[i * cols + (j + 0)] = mean.r;
+					output[i * cols + (j + 1)] = mean.g;
+					output[i * cols + (j + 2)] = mean.b;
 				}
 			}
 			createTexture2D(cpuTexture, output, res);
@@ -893,7 +880,7 @@ void DIMG::computeHistogram(GLuint image) {
 
 	unsigned char redColor;
 
-	for (int i = 0; i < totalBytes - 3; i += 3) {
+	for (int i = 0; i < totalBytes; i += 3) {
 
 		//get red from image
 		redColor = imageData[i];
@@ -930,7 +917,7 @@ void DIMG::computeHistogram(GLuint image) {
 	int tops2[256];
 	memset(tops2, 0, sizeof(tops2));
 
-	for (int i = 0; i < totalBytes - 3; i += 3) {
+	for (int i = 0; i < totalBytes; i += 3) {
 
 		//get red from image
 		redColor = imageData[i];
