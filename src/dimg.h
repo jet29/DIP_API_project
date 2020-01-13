@@ -117,17 +117,17 @@ public:
 	 * Apply sobel border technique
 	 * @param{GLuint} destiny image
 	 * */
-	void sobel(GLuint image);
+	void sobel(GLuint image, bool hardwareAcceleration);
 
 	/**
 	 *
 	 * */
-	void roberts(GLuint image);
+	void roberts(GLuint image, bool hardwareAcceleration);
 
 	/**
 	 *
 	 * */
-	void prewitt(GLuint image);
+	void prewitt(GLuint image, bool hardwareAcceleration);
 
 	/**
 	 *
@@ -142,7 +142,7 @@ public:
 	/**
 	 *
 	 * */
-	void gaussianLaplace(GLuint image);
+	void gaussianLaplace(GLuint image, bool hardwareAcceleration);
 
 	/**
 	 *

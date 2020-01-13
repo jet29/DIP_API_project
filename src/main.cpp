@@ -180,13 +180,13 @@ void renderToTexture(){
 		api.blackandwhite(imageID, UI::hardwareAcceleration);
 		break;
 	case SOBEL:
-		api.sobel(imageID);
+		api.sobel(imageID, UI::hardwareAcceleration);
 		break;
 	case ROBERTS:
-		api.roberts(imageID);
+		api.roberts(imageID, UI::hardwareAcceleration);
 		break;
 	case PREWITT:
-		api.prewitt(imageID);
+		api.prewitt(imageID, UI::hardwareAcceleration);
 		break;
 	case MEAN:
 		api.mean(imageID, UI::hardwareAcceleration);
@@ -196,7 +196,7 @@ void renderToTexture(){
 		break;
 	case GAUSSIAN:
 		api.c = UI::LoG_scale;
-		api.gaussianLaplace(imageID);
+		api.gaussianLaplace(imageID, UI::hardwareAcceleration);
 		break;
 	case TOON_SHADING:
 		glDeleteFramebuffers(1, &framebuffer);
@@ -219,7 +219,7 @@ void renderToTexture(){
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 		// Clears the color and depth buffers from the frame buffer
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		api.sobel(imageID);
+		api.sobel(imageID, UI::hardwareAcceleration);
 		// Binds the vertex array to be drawn
 		glBindVertexArray(VAO);
 		// Render triangle's geometry
