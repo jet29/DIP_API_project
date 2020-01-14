@@ -39,12 +39,6 @@
     <None Include="src\shaders\blackandwhite.vert">
       <Filter>api\shaders</Filter>
     </None>
-    <None Include="src\shaders\gaussianLaplace.frag">
-      <Filter>api\shaders</Filter>
-    </None>
-    <None Include="src\shaders\gaussianLaplace.vert">
-      <Filter>api\shaders</Filter>
-    </None>
     <None Include="src\shaders\grayscale.frag">
       <Filter>api\shaders</Filter>
     </None>
@@ -85,6 +79,12 @@
       <Filter>api\shaders</Filter>
     </None>
     <None Include="src\shaders\toonshading.vert">
+      <Filter>api\shaders</Filter>
+    </None>
+    <None Include="src\shaders\log.frag">
+      <Filter>api\shaders</Filter>
+    </None>
+    <None Include="src\shaders\log.vert">
       <Filter>api\shaders</Filter>
     </None>
   </ItemGroup>

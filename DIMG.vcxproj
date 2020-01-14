@@ -148,10 +148,10 @@
     <None Include="src\shaders\basic.vert" />
     <None Include="src\shaders\blackandwhite.frag" />
     <None Include="src\shaders\blackandwhite.vert" />
-    <None Include="src\shaders\gaussianLaplace.frag" />
-    <None Include="src\shaders\gaussianLaplace.vert" />
     <None Include="src\shaders\grayscale.frag" />
     <None Include="src\shaders\grayscale.vert" />
+    <None Include="src\shaders\log.frag" />
+    <None Include="src\shaders\log.vert" />
     <None Include="src\shaders\mean.frag" />
     <None Include="src\shaders\mean.vert" />
     <None Include="src\shaders\median.frag" />
