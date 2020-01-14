@@ -22,6 +22,7 @@
 #define	DIMG_MEAN_BLUR 0x0012
 #define	DIMG_MEDIAN 0x0013
 #define	DIMG_TOON_SHADING 0x0014
+#define DIMG_RED 0x0015
 
 typedef unsigned int DIMGenum;
 
@@ -71,6 +72,7 @@ public:
 	bool dimg_prewitt_edge_detection(const char* target, const char* dest, int kernelWidth, int kernelHeight, DIMGenum hwAcc);
 	bool dimg_log_edge_detection(const char* target, const char* dest, int kernelWidth, int kernelHeight,float sigma, DIMGenum hwAcc);
 	bool dimg_toon_shading(const char* target, const char* dest, int borderRadius, int colorDiscretization, DIMGenum hwAcc);
+	bool dimg_histogram(const char* target, const char* dest, DIMGenum type);
 	//bool dimg_custom_filter(std::vector<float> kernel);
 // Private functions
 private:
