@@ -57,7 +57,7 @@ private:
 // Public  functions
 public:
 	dimg();
-	void dimgTerminate();
+	void dimg_terminate();
 	bool init();
 	bool dimg_negative (const char* target, const char* dest, bool hwAcc);
 	bool dimg_grayscale(const char* target, const char* dest, bool hwAcc);
@@ -69,10 +69,10 @@ private:
 	void initGL();
 	void buildGeometry();
 	bool createTexture2D(IMGDATA img, unsigned int& id);
-	void terminateFilter(unsigned int& texture);
-	void initImage(IMGDATA &dest, unsigned char* data, int height, int width, int numOfChannels, const char* path);
-	IMGDATA loadImage(const char *path);
-	bool saveImage(IMGDATA image);
+	void terminate_filter(unsigned int& tex1, unsigned int& tex2, IMGDATA &img1, IMGDATA &img2);
+	void initImage(IMGDATA &dest, unsigned char* data, int width, int height, int numOfChannels, const char* path);
+	bool loadImage(const char* path, IMGDATA& img);
+	bool saveImage(IMGDATA img);
 	/**
 	 * Set OpenGL configuration for a
 	 * custom Frame Buffer

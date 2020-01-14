@@ -172,19 +172,22 @@ bool dimg::createTexture2D(IMGDATA img, unsigned int &id) {
 }
 
 Shader* setShader(DIMG_ENUM type) {
-    Shader* shader;
+    Shader* shader = new Shader("src/shaders/basic.vert", "src/shaders/basic.frag");
     switch (type) {
     case DIMG_NEGATIVE:
         shader = new Shader("src/shaders/negative.vert", "src/shaders/negative.frag");
-        return shader;
+        break;
     case DIMG_GRAYSCALE:
         shader = new Shader("src/shaders/grayscale.vert", "src/shaders/grayscale.frag");
-        return shader;
+        break;
     case DIMG_BLACK_AND_WHITE:
         shader = new Shader("src/shaders/blackandwhite.vert", "src/shaders/blackandwhite.frag");
-        return shader;
+        break;
     }
-    return NULL;
+    // Send image to GPU
+    shader->setInt("image", 0);
+    shader->use();
+    return shader;
 }
 
 void dimg::deferredShading(unsigned int id) {
@@ -200,89 +203,108 @@ void dimg::deferredShading(unsigned int id) {
     glBindVertexArray(0);
 }
 
-IMGDATA dimg::loadImage(const char* path) {
-    IMGDATA img;
+bool dimg::loadImage(const char* path,IMGDATA &img) {
     img.path = path;
     // Flips the texture when loads it because in opengl the texture coordinates are flipped
     stbi_set_flip_vertically_on_load(true);
     // Loads the texture file data
     img.data = stbi_load(path, &img.width, &img.height, &img.numOfChannels, 0);
-    return img;
-}
-
-bool dimg::saveImage(IMGDATA image) {
-    // You have to use 3 comp for complete jpg file. If not, the image will be grayscale or nothing.
-    stbi_flip_vertically_on_write(true); // flag is non-zero to flip data vertically
-    if (!stbi_write_jpg(image.path, image.width, image.height, image.numOfChannels, image.data, 90))
+    if (!img.data) {
+        std::cout << "ERROR:: Unable to load image " << img.path << std::endl;
         return false;
+    }
     return true;
 }
 
+bool dimg::saveImage(IMGDATA img) {
+    // You have to use 3 comp for complete jpg file. If not, the image will be grayscale or nothing.
+    stbi_flip_vertically_on_write(true); // flag is non-zero to flip data vertically
+    if (!stbi_write_jpg(img.path, img.width, img.height, img.numOfChannels, img.data, 90)) {
+        std::cout << "ERROR:: Unable to save image " << img.path << std::endl;
+        return false;
+    }
+    return true;
+}
+
+void dimg::initImage(IMGDATA &dest, unsigned char* data, int width, int height, int numOfChannels, const char* path){
+    dest.data = new unsigned char[height * width * 3];
+    dest.height = height;
+    dest.width = width;
+    dest.numOfChannels = numOfChannels;
+    dest.path = path;
+}
+
 bool dimg::dimg_negative(const char* target, const char* dest, bool hwAcc) {
-    IMGDATA input_img = loadImage(target);
+    // Load image information
+    IMGDATA input_img;
+    if (!loadImage(target, input_img))
+        return false;
+    // Output image init
     IMGDATA output_img;
+    initImage(output_img, input_img.data, input_img.width, input_img.height, input_img.numOfChannels, dest);
+    // Index (GPU) of dest texture
     unsigned int texID;
-    output_img.data = new unsigned char[input_img.height * input_img.width * 3];
-    output_img.height = input_img.height;
-    output_img.width = input_img.width;
-    output_img.numOfChannels = 3;
-    output_img.path = dest;
     // Create framebuffer
     setFrameBuffer(output_img.width, output_img.height);
-    // Sets the ViewPort
+    // Set viewport size to render in original resolution
     glViewport(0, 0, output_img.width, output_img.height);
-
+    // GPU Implementation
     if (hwAcc) {
-        // GPU Implementation
+        // Create GPU Texture
         if (!createTexture2D(input_img, texID))
             return false;
         // Set shader configuration
         shader = setShader(DIMG_NEGATIVE);
-        shader->use();
-        // Send image to GPU
-        shader->setInt("image", 0);
+        // Deferred shading
         deferredShading(texID);
+        // Get image data from GPU
         glBindTexture(GL_TEXTURE_2D, imageID);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, output_img.data);
     }
+    // CPU Implementation
     else {
-        // CPU Implementation
         for (int i = 0; i < output_img.height * output_img.width * 3; i++)
             output_img.data[i] = 255 - input_img.data[i];
     }
+    // Save image 
     if (!saveImage(output_img))
         return false;
+    // Free space
+    terminate_filter(texID, imageID, input_img, output_img);
 
     return true;
 }
 
 bool dimg::dimg_grayscale(const char* target, const char* dest, bool hwAcc) {
-    IMGDATA input_img = loadImage(target);
+    // Load image information
+    IMGDATA input_img;
+    if (!loadImage(target, input_img))
+        return false;
+    // Output image init
     IMGDATA output_img;
+    initImage(output_img, input_img.data, input_img.width, input_img.height, input_img.numOfChannels, dest);
+    // Index (GPU) of dest texture
     unsigned int texID;
-    output_img.data = new unsigned char[input_img.height * input_img.width * 3];
-    output_img.height = input_img.height;
-    output_img.width = input_img.width;
-    output_img.numOfChannels = 3;
-    output_img.path = dest;
     // Create framebuffer
     setFrameBuffer(output_img.width, output_img.height);
-
+    // Set viewport size to render in original resolution
+    glViewport(0, 0, output_img.width, output_img.height);
+   
+    // GPU Implementation
     if (hwAcc) {
-        // GPU Implementation
+        // Create GPU Texture
         if (!createTexture2D(input_img, texID))
             return false;
         // Set shader configuration
         shader = setShader(DIMG_GRAYSCALE);
-        shader->use();
-        // Send image to GPU
-        shader->setInt("image", 0);
+        // Deferred shading
         deferredShading(texID);
+        // Get image data from GPU
         glBindTexture(GL_TEXTURE_2D, imageID);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, output_img.data);
     }
+    // CPU Implementation
     else {
-        // CPU Implementation
         int gs_value;
         for (int i = 0; i < input_img.height * input_img.width * 3; i++) {
 
@@ -297,39 +319,46 @@ bool dimg::dimg_grayscale(const char* target, const char* dest, bool hwAcc) {
             output_img.data[i + 2] = gs_value;
         }
     }
+    // Save image 
     if (!saveImage(output_img))
         return false;
+    // Free space
+    terminate_filter(texID, imageID, input_img, output_img);
 
     return true;
 }
 
 bool dimg::dimg_black_and_white(const char* target, const char* dest, int threshold, bool hwAcc) {
-    IMGDATA input_img = loadImage(target);
+    // Load image information
+    IMGDATA input_img;
+    if (!loadImage(target, input_img))
+        return false;
+    // Output image init
     IMGDATA output_img;
+    initImage(output_img, input_img.data, input_img.width, input_img.height, input_img.numOfChannels, dest);
+    // Index (GPU) of dest texture
     unsigned int texID;
-    output_img.data = new unsigned char[input_img.height * input_img.width * 3];
-    output_img.height = input_img.height;
-    output_img.width = input_img.width;
-    output_img.numOfChannels = 3;
-    output_img.path = dest;
     // Create framebuffer
     setFrameBuffer(output_img.width, output_img.height);
+    // Set viewport size to render in original resolution
+    glViewport(0, 0, output_img.width, output_img.height);
+    
+    // GPU Implementation
     if (hwAcc) {
-        // GPU Implementation
+        // Create GPU Texture
         if (!createTexture2D(input_img, texID))
             return false;
         // Set shader configuration
         shader = setShader(DIMG_BLACK_AND_WHITE);
-        shader->use();
-        // Send image to GPU
-        shader->setInt("image", 0);
-        shader->setFloat("f_threshold", (float)threshold/(float)255);
+        shader->setFloat("f_threshold", (float)threshold / (float)255);
+        // Deferred shading
         deferredShading(texID);
+        // Get image data from GPU
         glBindTexture(GL_TEXTURE_2D, imageID);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, output_img.data);
     }
+    // CPU Implementation
     else {
-        // CPU Implementation
         int gs_value, bnw;
         for (int i = 0; i < output_img.height * output_img.width * 3; i++) {
             gs_value = (int)(input_img.data[i] * 0.2989) +
@@ -344,15 +373,28 @@ bool dimg::dimg_black_and_white(const char* target, const char* dest, int thresh
             output_img.data[i + 2] = bnw;
         }
     }
+    // Save image 
     if (!saveImage(output_img))
         return false;
-    glDeleteTextures(1, &texID);
+    // Free space
+    terminate_filter(texID, imageID, input_img, output_img);
+
     return true;
 }
 
-void dimg::dimgTerminate() {
-    // Deletes the texture from the gpu
-    glDeleteTextures(1, &imageID);
+void dimg::terminate_filter(unsigned int& tex1, unsigned int& tex2, IMGDATA &img1, IMGDATA &img2) {
+    // Deletes texture from gpu
+    glDeleteTextures(1, &tex1);
+    // Deletes texture from gpu
+    glDeleteTextures(1, &tex2);
+    // Free image bytes on memory
+    delete img1.data;
+    // Free image bytes on memory
+    delete img2.data;
+}
+
+void dimg::dimg_terminate() {
+
     // Deletes the vertex array from the GPU
     glDeleteVertexArrays(1, &VAO);
     // Deletes the vertex object from the GPU

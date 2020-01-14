@@ -8,9 +8,6 @@ int main(int argc, char const *argv[])
     api.dimg_negative("./zelda.jpg","./output_negative.jpg",1);
     api.dimg_grayscale("./zelda.jpg", "./output_grayscale.jpg", 1);
     api.dimg_black_and_white("./zelda.jpg", "./output_blackandwhite.jpg",127, 1);
-    std::cout << "=====================================================" << std::endl
-              << "        Press Escape to close the program            " << std::endl
-              << "=====================================================" << std::endl;
-
+    api.dimg_terminate();
     return 0;
 }
