@@ -24,7 +24,25 @@ int main(int argc, char const *argv[])
     //api.dimg_log_edge_detection("./zelda.jpg", "./output_log_GPU.jpg", 7, 7, 1.1f, DIMG_HARDWARE_ACCELERATION);
     //api.dimg_log_edge_detection("./zelda.jpg", "./output_log_CPU.jpg", 7, 7, 1.1f, DIMG_CPU_ONLY);
     //api.dimg_toon_shading("./zelda.jpg", "./output_toon_shading_GPU.jpg", 5, 5, DIMG_HARDWARE_ACCELERATION);
-    api.dimg_histogram("./zelda.jpg", "./histogram_blue.jpg", 256, 150, 2);
-    api.dimg_terminate();
+    //api.dimg_histogram("./zelda.jpg", "./histogram_blue.jpg", 800, 600, DIMG_GREEN);
+    //int unique_colors;
+    //api.dimg_unique_colors("./zelda.jpg", unique_colors);
+    //std::cout<<"unique colors: "<< unique_colors <<std::endl;
+    //int width, height;
+    //api.dimg_image_dimension("./zelda.jpg",width, height);
+    //printf("dimensions(%i,%i)\n", width, height);
+    //int bpp;
+    //api.dimg_image_bpp("./zelda.jpg", bpp);
+    //std::cout<<"bpp: "<< bpp <<std::endl;
+    //int dpi;
+    //api.dimg_image_dpi("./zelda.jpg", dpi);
+    //std::cout << "dpi: " << dpi << std::endl;
+    //api.dimg_terminate();
+    float kernel[] = { 1, 1,
+                      -1,-1 };
+    api.dimg_custom_filter("./zelda.jpg", "./output_custom_GPU.jpg", 2, 2, kernel, DIMG_HARDWARE_ACCELERATION);
+    api.dimg_custom_filter("./zelda.jpg", "./output_custom_CPU.jpg", 2, 2, kernel, DIMG_CPU_ONLY);
+
+
     return 0;
 }

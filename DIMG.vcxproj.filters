@@ -87,6 +87,12 @@
     <None Include="src\shaders\log.vert">
       <Filter>api\shaders</Filter>
     </None>
+    <None Include="src\shaders\customkernel.frag">
+      <Filter>api\shaders</Filter>
+    </None>
+    <None Include="src\shaders\customkernel.vert">
+      <Filter>api\shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="basic">

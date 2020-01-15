@@ -148,6 +148,8 @@
     <None Include="src\shaders\basic.vert" />
     <None Include="src\shaders\blackandwhite.frag" />
     <None Include="src\shaders\blackandwhite.vert" />
+    <None Include="src\shaders\customkernel.frag" />
+    <None Include="src\shaders\customkernel.vert" />
     <None Include="src\shaders\grayscale.frag" />
     <None Include="src\shaders\grayscale.vert" />
     <None Include="src\shaders\log.frag" />

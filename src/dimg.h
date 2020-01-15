@@ -22,7 +22,10 @@
 #define	DIMG_MEAN_BLUR 0x0012
 #define	DIMG_MEDIAN 0x0013
 #define	DIMG_TOON_SHADING 0x0014
-#define DIMG_RED 0x0015
+#define DIMG_CUSTOM_KERNEL 0x015
+#define DIMG_RED 0x0016
+#define DIMG_GREEN 0x0017
+#define DIMG_BLUE 0x0018
 
 typedef unsigned int DIMGenum;
 
@@ -72,8 +75,13 @@ public:
 	bool dimg_prewitt_edge_detection(const char* target, const char* dest, int kernelWidth, int kernelHeight, DIMGenum hwAcc);
 	bool dimg_log_edge_detection(const char* target, const char* dest, int kernelWidth, int kernelHeight,float sigma, DIMGenum hwAcc);
 	bool dimg_toon_shading(const char* target, const char* dest, int borderRadius, int colorDiscretization, DIMGenum hwAcc);
-	bool dimg_histogram(const char* target, const char* dest, int width, int height, int offset);
-	//bool dimg_custom_filter(std::vector<float> kernel);
+	bool dimg_custom_filter(const char* target, const char* dest,int kernelWidth, int kernelHeight, float* kernelMatrix, DIMGenum hwAcc);
+	bool dimg_histogram(const char* target, const char* dest, int width, int height, DIMGenum type);
+	bool dimg_unique_colors(const char* target, int& unique_colors);
+	bool dimg_image_dimension(const char* target, int& width, int& height);
+	bool dimg_image_bpp(const char* target, int& bpp);
+	bool dimg_image_dpi(const char* target, int& dpi);
+	
 // Private functions
 private:
 	bool initWindow();
@@ -83,6 +91,7 @@ private:
 	void setKernel(DIMGenum type, unsigned int &kernel, int kernelWidth, int kernelHeight);
 	void setKernel(DIMGenum type, unsigned int& gx, unsigned int& gy, int kernelWidth, int kernelHeight);
 	void setKernel(DIMGenum type, unsigned int& gx, float sigma, int kernelWidth, int kernelHeight);
+	void setKernel(DIMGenum type, unsigned int& kernel, float* kernelMatrix, int kernelWidth, int kernelHeight);
 	void setKernel(DIMGenum type, std::vector<float> &kernel, int kernelWidth, int kernelHeight);
 	void setKernel(DIMGenum type, std::vector<float> &gx, std::vector<float> &gy, int kernelWidth, int kernelHeight);
 	void setKernel(DIMGenum type, std::vector<float> &gx, float sigma, int kernelWidth, int kernelHeight);

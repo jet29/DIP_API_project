@@ -204,6 +204,9 @@ Shader* setShader(DIMGenum type) {
     case DIMG_TOON_SHADING:
         shader = new Shader("src/shaders/toonshading.vert", "src/shaders/toonshading.frag");
         break;
+    case DIMG_CUSTOM_KERNEL:
+        shader = new Shader("src/shaders/customkernel.vert", "src/shaders/customkernel.frag");
+        break;
     }
     // Send image to GPU
     shader->setInt("image", 0);
@@ -250,24 +253,18 @@ bool dimg::saveImage(IMGDATA img, bool flipVertical){
 void dimg::setKernel(DIMGenum type, unsigned int &kernel, int kernelWidth, int kernelHeight) {
     std::vector<float> kernelData = std::vector<float>(49, 0.0f);
     // GPU Kernel
-    switch (type) {
-    case DIMG_MEAN_BLUR: {
-        for (int i = 0; i < kernelHeight; i++)
-            for (int j = 0; j < kernelWidth; j++)
-                kernelData[i * kernelWidth + j] = 1;
-
-        // Texture for mean blur
-        glGenTextures(1, &kernel);
-        glBindTexture(GL_TEXTURE_1D, kernel);
-        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, kernelData.data());
-        glBindTexture(GL_TEXTURE_1D, 0);
-        break;
-    }
-    }
+    for (int i = 0; i < kernelHeight; i++)
+        for (int j = 0; j < kernelWidth; j++)
+            kernelData[i * kernelWidth + j] = 1;
+    // Texture for mean blur
+    glGenTextures(1, &kernel);
+    glBindTexture(GL_TEXTURE_1D, kernel);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, kernelData.data());
+    glBindTexture(GL_TEXTURE_1D, 0);
 }
 
 void dimg::setKernel(DIMGenum type, unsigned int& gx, unsigned int& gy, int kernelWidth, int kernelHeight) {
@@ -425,6 +422,23 @@ void dimg::setKernel(DIMGenum type, unsigned int& gx, float sigma, int kernelWid
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, gxData.data());
+    glBindTexture(GL_TEXTURE_1D, 0);
+}
+
+void dimg::setKernel(DIMGenum type, unsigned int& kernel, float* kernelMatrix, int kernelWidth, int kernelHeight) {
+    std::vector<float> kernelData = std::vector<float>(49, 0.0f);
+    // GPU Kernel
+    for (int i = 0; i < kernelHeight; i++)
+        for (int j = 0; j < kernelWidth; j++)
+            kernelData[i * kernelWidth + j] = kernelMatrix[i * kernelWidth + j];
+    // Texture for mean blur
+    glGenTextures(1, &kernel);
+    glBindTexture(GL_TEXTURE_1D, kernel);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, 49, 0, GL_RED, GL_FLOAT, kernelData.data());
     glBindTexture(GL_TEXTURE_1D, 0);
 }
 
@@ -1352,6 +1366,181 @@ bool dimg::dimg_toon_shading(const char* target, const char* dest, int borderRad
     }
     // CPU Implementation
     else {
+        std::vector<float> gx, gy;
+        glm::ivec3 sobel;
+        glm::vec3 s_gx, s_gy;
+        glm::ivec2 pivot;
+        glm::ivec2 img_pos, k_pos;
+        int rgb_offset, gs_value;
+
+        // Compute Sobel 
+        setKernel(DIMG_SOBEL_EDGE_DETECTION, gx, gy, borderRadius, borderRadius);
+        pivot = glm::ivec2(borderRadius / 2, borderRadius / 2);
+        for (int i = 0; i < input_img.height; i++) {
+            for (int j = 0; j < input_img.width * 3; j += 3) {
+                sobel = glm::ivec3(0);
+                s_gx = glm::vec3(0);
+                s_gy = glm::vec3(0);
+                img_pos = glm::ivec2(i * input_img.width * 3, j);
+                // Kernel Loop
+                for (int ii = 0; ii < borderRadius; ii++) {
+                    //printf("--------------------- KROW: %i\n", ii);
+                    for (int jj = 0; jj < borderRadius; jj++) {
+                        rgb_offset = (jj - pivot.y) * 3;
+                        k_pos = glm::ivec2(img_pos.x + (ii - pivot.x) * input_img.width * 3, img_pos.y + rgb_offset);
+                        if (!isInImage(k_pos.x, k_pos.y, input_img.width, input_img.height))
+                            continue;
+                        // X-axis gradient
+                        s_gx += glm::vec3(
+                            input_img.data[k_pos.x + (k_pos.y + 0)] * gx[ii * borderRadius + jj],
+                            input_img.data[k_pos.x + (k_pos.y + 1)] * gx[ii * borderRadius + jj],
+                            input_img.data[k_pos.x + (k_pos.y + 2)] * gx[ii * borderRadius + jj]);
+                        // Y-axis gradient
+                        s_gy += glm::vec3(
+                            input_img.data[k_pos.x + (k_pos.y + 0)] * gy[ii * borderRadius + jj],
+                            input_img.data[k_pos.x + (k_pos.y + 1)] * gy[ii * borderRadius + jj],
+                            input_img.data[k_pos.x + (k_pos.y + 2)] * gy[ii * borderRadius + jj]);
+                    }
+                }
+                // Compute gradient's magnitude
+                sobel = glm::round(glm::sqrt(s_gx * s_gx + s_gy * s_gy));
+                gs_value = (int)(sobel.r * 0.2989) +
+                    (int)(sobel.g * 0.5870) +
+                    (int)(sobel.b * 0.1140);
+                sobel = glm::ivec3(gs_value, gs_value, gs_value);
+                // Assign sobel color to output image
+                output_img.data[i * input_img.width * 3 + (j + 0)] = sobel.r;
+                output_img.data[i * input_img.width * 3 + (j + 1)] = sobel.g;
+                output_img.data[i * input_img.width * 3 + (j + 2)] = sobel.b;
+            }
+        }
+
+        // Check for edges, if not then compute median
+        pivot = glm::ivec2(colorDiscretization / 2, colorDiscretization / 2);
+        std::vector<glm::ivec3> rgb_array;
+        for (int i = 0; i < input_img.height; i++) {
+            for (int j = 0; j < input_img.width * 3; j += 3) {
+                if (output_img.data[i * input_img.width * 3 + (j + 0)] > 30) {
+                    output_img.data[i * input_img.width * 3 + (j + 0)] = 0;
+                    output_img.data[i * input_img.width * 3 + (j + 1)] = 0;
+                    output_img.data[i * input_img.width * 3 + (j + 2)] = 0;
+                }
+                else{
+                    img_pos = glm::ivec2(i * input_img.width * 3, j);
+                    for (int ii = 0; ii < colorDiscretization; ii++) {
+                        for (int jj = 0; jj < colorDiscretization; jj++) {
+                            rgb_offset = (jj - pivot.y) * 3;
+                            k_pos = glm::ivec2(img_pos.x + (ii - pivot.x) * input_img.width * 3, img_pos.y + rgb_offset);
+                            if (!isInImage(k_pos.x, k_pos.y, input_img.width, input_img.height))
+                                continue;
+                            rgb_array.push_back(glm::ivec3(
+                                input_img.data[k_pos.x + (k_pos.y + 0)],
+                                input_img.data[k_pos.x + (k_pos.y + 1)],
+                                input_img.data[k_pos.x + (k_pos.y + 2)]
+                            ));
+                        }
+                    }
+                    // Sort colors
+                    sort(rgb_array);
+                    // Assign median color to output image
+                    output_img.data[i * output_img.width * 3 + (j + 0)] = rgb_array[rgb_array.size() / 2].r;
+                    output_img.data[i * output_img.width * 3 + (j + 1)] = rgb_array[rgb_array.size() / 2].g;
+                    output_img.data[i * output_img.width * 3 + (j + 2)] = rgb_array[rgb_array.size() / 2].b;
+                    rgb_array.clear();
+                }
+            }
+        }
+    }
+
+    // Save image 
+    if (!saveImage(output_img, true))
+        return false;
+
+    // Free image bytes on memory
+    delete output_img.data;
+    // Free image bytes on memory
+    delete input_img.data;
+
+    return true;
+}
+
+bool dimg::dimg_custom_filter(const char* target, const char* dest, int kernelWidth, int kernelHeight, float* kernelMatrix, DIMGenum hwAcc) {
+    // Load image information
+    IMGDATA input_img;
+    if (!loadImage(target, input_img))
+        return false;
+    // Output image init
+    IMGDATA output_img;
+    initImage(output_img, input_img.data, input_img.width, input_img.height, input_img.numOfChannels, dest);
+    // Index (GPU) of target texture
+    unsigned int texID;
+    // Create framebuffer
+    setFrameBuffer(output_img.width, output_img.height);
+    // Set viewport size to render in original resolution
+    glViewport(0, 0, output_img.width, output_img.height);
+    // GPU Implementation
+    if (hwAcc == DIMG_HARDWARE_ACCELERATION) {
+        unsigned int kernel;
+        // Compute Kernel
+        setKernel(DIMG_CUSTOM_KERNEL, kernel, kernelMatrix, kernelWidth, kernelHeight);
+        // Create GPU Texture
+        if (!createTexture2D(input_img, texID))
+            return false;
+        // Set shader configuration
+        shader = setShader(DIMG_CUSTOM_KERNEL);
+        shader->setInt("kernel", 1);
+        shader->setInt("kWidth", kernelWidth);
+        shader->setInt("kHeight", kernelHeight);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_1D, kernel);
+        // Deferred shading
+        deferredShading(texID);
+        // Get image data from GPU
+        glBindTexture(GL_TEXTURE_2D, imageID);
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, output_img.data);
+        // Deletes texture from gpu
+        glDeleteTextures(1, &imageID);
+        // Deletes texture from gpu
+        glDeleteTextures(1, &texID);
+    }
+    // CPU Implementation
+    else {
+        glm::ivec3 custom;
+        glm::ivec2 pivot = glm::ivec2(kernelHeight / 2, kernelWidth / 2);
+        glm::ivec2 img_pos, k_pos;
+        int totalSize = kernelHeight * kernelWidth;
+        int rgb_offset;
+        for (int i = 0; i < input_img.height; i++) {
+            for (int j = 0; j < input_img.width * 3; j += 3) {
+                custom = glm::ivec3(0);
+                img_pos = glm::ivec2(i * input_img.width * 3, j);
+                // Kernel Loop
+                for (int ii = 0; ii < kernelHeight; ii++) {
+                   // printf("--------------------- KROW: %i\n", ii);
+                    for (int jj = 0; jj < kernelWidth; jj++) {
+                        rgb_offset = (jj - pivot.y) * 3;
+                        k_pos = glm::ivec2(img_pos.x + (ii - pivot.x) * input_img.width * 3, img_pos.y + rgb_offset);
+                        if (!isInImage(k_pos.x, k_pos.y, input_img.width, input_img.height))
+                            continue;
+                        //printf("kernel[%i][%i] = %f\n", ii * kernelWidth,jj,kernelMatrix[ii * kernelWidth + jj]);
+                       // red
+                        custom.r += input_img.data[k_pos.x + (k_pos.y + 0)] * (int)kernelMatrix[ii * kernelWidth + jj];
+                        // green
+                        custom.g += input_img.data[k_pos.x + (k_pos.y + 1)] * (int)kernelMatrix[ii * kernelWidth + jj];
+                        // blue
+                        custom.b += input_img.data[k_pos.x + (k_pos.y + 2)] * (int)kernelMatrix[ii * kernelWidth + jj];
+                    }
+                }
+                //printf("custom rgb(%i,%i,%i)\n", custom.r, custom.g, custom.b);
+                custom.r = custom.r < 0 ? 0 : custom.r;
+                custom.g = custom.g < 0 ? 0 : custom.g;
+                custom.b = custom.b < 0 ? 0 : custom.b;
+
+                output_img.data[i * input_img.width * 3 + (j + 0)] = custom.r;
+                output_img.data[i * input_img.width * 3 + (j + 1)] = custom.g;
+                output_img.data[i * input_img.width * 3 + (j + 2)] = custom.b;
+            }
+        }
 
     }
     // Save image 
@@ -1366,20 +1555,20 @@ bool dimg::dimg_toon_shading(const char* target, const char* dest, int borderRad
     return true;
 }
 
-void dimg::dimg_terminate() {
+bool dimg::dimg_histogram(const char* target, const char* dest, int width, int height, DIMGenum type){
 
-    // Deletes the vertex array from the GPU
-    glDeleteVertexArrays(1, &VAO);
-    // Deletes the vertex object from the GPU
-    glDeleteBuffers(1, &VBO);
-    // Destroy the shader
-    delete shader;
-    // Stops the glfw program
-    glfwTerminate();
-}
-
-
-bool dimg::dimg_histogram(const char* target, const char* dest, int width, int height, int offset){
+    int offset;
+    switch (type) {
+    case DIMG_RED:
+        offset = 0;
+        break;
+    case DIMG_GREEN:
+        offset = 1;
+        break;
+    case DIMG_BLUE:
+        offset = 2;
+        break;
+    }
 
     IMGDATA input_img;
     if (!loadImage(target, input_img))
@@ -1459,4 +1648,65 @@ bool dimg::dimg_histogram(const char* target, const char* dest, int width, int h
 
     return true;
 
+}
+
+bool dimg::dimg_unique_colors(const char* target, int& unique_colors) {
+    // Load image information
+    IMGDATA input_img;
+    if (!loadImage(target, input_img))
+        return false;
+    std::vector<char> color = std::vector<char>(256 * 256 * 256, 0);
+    int totalBytes = input_img.width * input_img.height * 3;
+    int pos, x, y, z;
+    unique_colors = 0;
+    for (int i = 0; i < totalBytes; i += 3) {
+        x = input_img.data[i];
+        y = input_img.data[i + 1];
+        z = input_img.data[i + 2];
+        pos = (255 * 255 * z) + (255 * y) + x;
+        if (color[pos] == 0) {
+            color[pos] = 1;
+            unique_colors++;
+        }
+    }
+    return true;
+}
+
+bool dimg::dimg_image_dimension(const char* target, int& width, int& height) {
+    // Load image information
+    IMGDATA input_img;
+    if (!loadImage(target, input_img))
+        return false;
+    width = input_img.width;
+    height = input_img.height;
+    return true;
+}
+
+bool dimg::dimg_image_bpp(const char* target, int& bpp) {
+    // Load image information
+    IMGDATA input_img;
+    if (!loadImage(target, input_img))
+        return false;
+    bpp = (int)pow(2, input_img.numOfChannels);
+    return true;
+}
+
+bool dimg::dimg_image_dpi(const char* target, int& dpi) {
+    // Load image information
+    IMGDATA input_img;
+    if (!loadImage(target, input_img))
+        return false;
+    dpi = (int)glm::round((float)input_img.width * 25.4 / (float)(input_img.width * 0.264583));
+    return true;
+}
+
+void dimg::dimg_terminate() {
+    // Deletes the vertex array from the GPU
+    glDeleteVertexArrays(1, &VAO);
+    // Deletes the vertex object from the GPU
+    glDeleteBuffers(1, &VBO);
+    // Destroy the shader
+    delete shader;
+    // Stops the glfw program
+    glfwTerminate();
 }
