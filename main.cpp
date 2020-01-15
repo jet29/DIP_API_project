@@ -23,7 +23,8 @@ int main(int argc, char const *argv[])
     //api.dimg_prewitt_edge_detection("./zelda.jpg", "./output_prewitt_CPU.jpg", 6, 6, DIMG_CPU_ONLY);
     //api.dimg_log_edge_detection("./zelda.jpg", "./output_log_GPU.jpg", 7, 7, 1.1f, DIMG_HARDWARE_ACCELERATION);
     //api.dimg_log_edge_detection("./zelda.jpg", "./output_log_CPU.jpg", 7, 7, 1.1f, DIMG_CPU_ONLY);
-    api.dimg_toon_shading("./zelda.jpg", "./output_toon_shading_GPU.jpg", 5, 5, DIMG_HARDWARE_ACCELERATION);
+    //api.dimg_toon_shading("./zelda.jpg", "./output_toon_shading_GPU.jpg", 5, 5, DIMG_HARDWARE_ACCELERATION);
+    api.dimg_histogram("./zelda.jpg", "./histogram_blue.jpg", 256, 150, 2);
     api.dimg_terminate();
     return 0;
 }

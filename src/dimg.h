@@ -72,7 +72,7 @@ public:
 	bool dimg_prewitt_edge_detection(const char* target, const char* dest, int kernelWidth, int kernelHeight, DIMGenum hwAcc);
 	bool dimg_log_edge_detection(const char* target, const char* dest, int kernelWidth, int kernelHeight,float sigma, DIMGenum hwAcc);
 	bool dimg_toon_shading(const char* target, const char* dest, int borderRadius, int colorDiscretization, DIMGenum hwAcc);
-	bool dimg_histogram(const char* target, const char* dest, DIMGenum type);
+	bool dimg_histogram(const char* target, const char* dest, int width, int height, int offset);
 	//bool dimg_custom_filter(std::vector<float> kernel);
 // Private functions
 private:
@@ -91,7 +91,7 @@ private:
 	bool createTexture2D(IMGDATA img, unsigned int& id);
 	void initImage(IMGDATA &dest, unsigned char* data, int width, int height, int numOfChannels, const char* path);
 	bool loadImage(const char* path, IMGDATA& img);
-	bool saveImage(IMGDATA img);
+	bool saveImage(IMGDATA img, bool flipVertical);
 	/**
 	 * Set OpenGL configuration for a
 	 * custom Frame Buffer

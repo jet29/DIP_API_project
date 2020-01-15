@@ -237,9 +237,9 @@ bool dimg::loadImage(const char* path,IMGDATA &img) {
     return true;
 }
 
-bool dimg::saveImage(IMGDATA img) {
+bool dimg::saveImage(IMGDATA img, bool flipVertical){
     // You have to use 3 comp for complete jpg file. If not, the image will be grayscale or nothing.
-    stbi_flip_vertically_on_write(true); // flag is non-zero to flip data vertically
+    stbi_flip_vertically_on_write(flipVertical); // flag is non-zero to flip data vertically
     if (!stbi_write_jpg(img.path, img.width, img.height, img.numOfChannels, img.data, 90)) {
         std::cout << "ERROR:: Unable to save image " << img.path << std::endl;
         return false;
@@ -592,7 +592,7 @@ bool dimg::dimg_negative(const char* target, const char* dest, DIMGenum hwAcc) {
             output_img.data[i] = 255 - input_img.data[i];
     }
     // Save image 
-    if (!saveImage(output_img))
+    if (!saveImage(output_img, true))
         return false;
     // Free image bytes on memory
     delete output_img.data;
@@ -651,7 +651,7 @@ bool dimg::dimg_grayscale(const char* target, const char* dest, DIMGenum hwAcc) 
         }
     }
     // Save image 
-    if (!saveImage(output_img))
+    if (!saveImage(output_img, true))
         return false;
     // Free image bytes on memory
     delete output_img.data;
@@ -711,7 +711,7 @@ bool dimg::dimg_black_and_white(const char* target, const char* dest, int thresh
         }
     }
     // Save image 
-    if (!saveImage(output_img))
+    if (!saveImage(output_img, true))
         return false;
 
     // Free image bytes on memory
@@ -802,7 +802,7 @@ bool dimg::dimg_mean_blur(const char* target, const char* dest, int kernelWidth,
 
     }
     // Save image 
-    if (!saveImage(output_img))
+    if (!saveImage(output_img, true))
         return false;
 
     // Free image bytes on memory
@@ -882,7 +882,7 @@ bool dimg::dimg_median(const char* target, const char* dest, int kernelWidth, in
         }
     }
     // Save image 
-    if (!saveImage(output_img))
+    if (!saveImage(output_img, true))
         return false;
 
     // Free image bytes on memory
@@ -988,7 +988,7 @@ bool dimg::dimg_sobel_edge_detection(const char* target, const char* dest, int k
         }
     }
     // Save image 
-    if (!saveImage(output_img))
+    if (!saveImage(output_img, true))
         return false;
 
     // Free image bytes on memory
@@ -1094,7 +1094,7 @@ bool dimg::dimg_roberts_edge_detection(const char* target, const char* dest, int
         }
     }
     // Save image 
-    if (!saveImage(output_img))
+    if (!saveImage(output_img, true))
         return false;
 
     // Free image bytes on memory
@@ -1200,7 +1200,7 @@ bool dimg::dimg_prewitt_edge_detection(const char* target, const char* dest, int
         }
     }
     // Save image 
-    if (!saveImage(output_img))
+    if (!saveImage(output_img, true))
         return false;
 
     // Free image bytes on memory
@@ -1296,7 +1296,7 @@ bool dimg::dimg_log_edge_detection(const char* target, const char* dest, int ker
         }
     }
     // Save image 
-    if (!saveImage(output_img))
+    if (!saveImage(output_img, true))
         return false;
 
     // Free image bytes on memory
@@ -1355,7 +1355,7 @@ bool dimg::dimg_toon_shading(const char* target, const char* dest, int borderRad
 
     }
     // Save image 
-    if (!saveImage(output_img))
+    if (!saveImage(output_img, true))
         return false;
 
     // Free image bytes on memory
@@ -1376,4 +1376,87 @@ void dimg::dimg_terminate() {
     delete shader;
     // Stops the glfw program
     glfwTerminate();
+}
+
+
+bool dimg::dimg_histogram(const char* target, const char* dest, int width, int height, int offset){
+
+    IMGDATA input_img;
+    if (!loadImage(target, input_img))
+        return false;
+
+    int totalBytes = input_img.width * input_img.height * 3;
+    int maxHeight = 0;
+
+    //structure to check top for all colors
+    int tops[256];
+    memset(tops, 0, sizeof(tops));
+
+    unsigned char color;
+
+    for (int i = 0; i < totalBytes; i += 3) {
+
+        //get channel color from image
+        color = input_img.data[i + offset];
+
+        tops[color]++;
+
+        if (tops[color] > maxHeight) maxHeight = tops[color];
+    }
+ 
+    int numChannels = 3;
+
+    int totalBytesHist = width * height * numChannels;
+
+    unsigned char* histogram = new unsigned char[totalBytesHist];
+
+    for (int i = 0; i < totalBytesHist; i++) {
+        histogram[i] = 255;
+    }
+
+    int tops2[256];
+    memset(tops2, 0, sizeof(tops2));
+
+    for (int i = 0; i < totalBytes; i += 3) {
+
+        //get channel color from image
+        color = input_img.data[i + offset];
+
+        float ratio = (float)tops2[color] / (float)maxHeight;
+
+        int ii = (int)(ratio * height);
+
+        //assign color to image
+        histogram[ii * width * 3 + color * 3] = 0;
+        histogram[ii * width * 3 + color * 3 + 1] = 0;
+        histogram[ii * width * 3 + color * 3 + 2] = 0;
+
+        tops2[color]++;
+    }
+
+    IMGDATA output_img;
+
+    initImage(output_img, input_img.data, width, height, numChannels, dest);
+
+
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width * 3; j++) {
+
+            unsigned char value;
+            value = histogram[(height - i - 1) * width * 3 + j];
+            output_img.data[i * width * 3 + j] = value;
+        }
+    }
+    
+    // Save image 
+    if (!saveImage(output_img, false))
+        return false;
+
+    // Free image bytes on memory
+    delete output_img.data;
+    // Free image bytes on memory
+    delete input_img.data;
+
+    return true;
+
 }

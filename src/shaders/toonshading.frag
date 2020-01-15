@@ -19,10 +19,10 @@ vec3 median();
 void main(){
 
 	vec3 sobel = sobel();
-	vec3 median = median();
+	//vec3 median = median();
 
 
-	color = sobel.r > 0.5f ? vec4(sobel,1.0f) : vec4(median,1.0f);
+	color = sobel.r > 0.5f ? vec4(0.0f,0.0f,0.0f,1.0f) : vec4(median(),1.0f);
 
 }
 
