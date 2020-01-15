@@ -85,17 +85,10 @@ public:
 	 * @return false if failed 
 	 */
 	bool init();
-	bool dimg_custom_filter(const char* target, const char* dest,int kernelWidth, int kernelHeight, float* kernelMatrix, DIMGenum hwAcc);
-	bool dimg_unique_colors(const char* target, int& unique_colors);
-	bool dimg_image_dimension(const char* target, int& width, int& height);
-	bool dimg_image_bpp(const char* target, int& bpp);
-	bool dimg_image_dpi(const char* target, int& dpi);
-	
-// Private functions
 
 
 	/**
-	 * @brief calculates the negative of an image 
+	 * @brief compute the negative of an image 
 	 * 
 	 * @param target route of the image
 	 * @param dest directory of the result image
@@ -107,7 +100,7 @@ public:
 
 
 	/**
-	 * @brief calculates the grayscale of an image 
+	 * @brief compute the grayscale of an image 
 	 * 
 	 * @param target route of the image
 	 * @param dest directory of the result image
@@ -118,7 +111,7 @@ public:
 	bool dimg_grayscale(const char *target, const char *dest, DIMGenum hwAcc);
 
 	/**
-	 * @brief calculates the black and white of an image 
+	 * @brief compute the black and white of an image 
 	 * 
 	 * @param target route of the image
 	 * @param dest directory of the result image
@@ -131,7 +124,7 @@ public:
 
 
 	/**
-	 * @brief calculates the Mean filter of an image 
+	 * @brief compute the Mean filter of an image 
 	 * 
 	 * @param target route of the image
 	 * @param dest directory of the result image
@@ -144,7 +137,7 @@ public:
 	bool dimg_mean_blur(const char *target, const char *dest, int kernelWidth, int kernelHeight, DIMGenum hwAcc);
 	
 	/**
-	 * @brief calculates the Median filter of an image 
+	 * @brief compute the Median filter of an image 
 	 * 
 	 * @param target route of the image
 	 * @param dest directory of the result image
@@ -157,7 +150,7 @@ public:
 	bool dimg_median(const char *target, const char *dest, int kernelWidth, int kernelHeight, DIMGenum hwAcc);
 	
 	/**
-	 * @brief calculates the Sobel filter of an image 
+	 * @brief compute the Sobel filter of an image 
 	 * 
 	 * @param target route of the image
 	 * @param dest directory of the result image
@@ -170,7 +163,7 @@ public:
 	bool dimg_sobel_edge_detection(const char *target, const char *dest, int kernelWidth, int kernelHeight, DIMGenum hwAcc);
 	
 	/**
-	 * @brief calculates the Roberts filter of an image 
+	 * @brief compute the Roberts filter of an image 
 	 * 
 	 * @param target route of the image
 	 * @param dest directory of the result image
@@ -183,7 +176,7 @@ public:
 	bool dimg_roberts_edge_detection(const char *target, const char *dest, int kernelWidth, int kernelHeight, DIMGenum hwAcc);
 	
 	/**
-	 * @brief calculates the Prewitt filter of an image 
+	 * @brief compute the Prewitt filter of an image 
 	 * 
 	 * @param target route of the image
 	 * @param dest directory of the result image
@@ -196,7 +189,7 @@ public:
 	bool dimg_prewitt_edge_detection(const char *target, const char *dest, int kernelWidth, int kernelHeight, DIMGenum hwAcc);
 	
 	/**
-	 * @brief calculates the LoG filter of an image 
+	 * @brief compute the LoG filter of an image 
 	 * 
 	 * @param target route of the image
 	 * @param dest directory of the result image
@@ -211,7 +204,7 @@ public:
 	
 	
 	/**
-	 * @brief calculates the toon shading filter of an image 
+	 * @brief compute the toon shading filter of an image 
 	 * 
 	 * @param target route of the image
 	 * @param dest directory of the result image
@@ -224,7 +217,7 @@ public:
 	bool dimg_toon_shading(const char *target, const char *dest, int borderRadius, int colorDiscretization, DIMGenum hwAcc);
 	
 	/**
-	 * @brief calculates the histogram of an image
+	 * @brief compute the histogram of an image
 	 * 
 	 * @param target route of the image
 	 * @param dest directory of the result image
@@ -235,8 +228,64 @@ public:
 	 * @return false if failed
 	 */
 	bool dimg_histogram(const char *target, const char *dest, int width, int height, DIMGenum type);
-	//bool dimg_custom_filter(std::vector<float> kernel);
-	// Private functions
+	
+	/**
+	 * @brief compute a custom filter giving a matrix
+	 * 
+	 * @param target route of the image
+	 * @param dest directory of the result image
+	 * @param kernelWidth width size of the kernel
+	 * @param kernelHeight height size of the kernel
+	 * @param kernelMatrix
+	 * @param hwAcc use hardware acceleration or not
+	 * @return true if success
+	 * @return false if failed
+	 */
+	bool dimg_custom_filter(const char* target, const char* dest, int kernelWidth, int kernelHeight, float* kernelMatrix, DIMGenum hwAcc);
+
+
+	/**
+	 * @brief compute unique color for an image
+	 * 
+	 * @param target image route
+	 * @param unique_colors destiny variable passed by reference
+	 * @return true if success
+	 * @return false if failed
+	 */
+	bool dimg_unique_colors(const char* target, int& unique_colors);
+
+	/**
+	 * @brief compute image dimension for an image
+	 * 
+	 * @param target image route
+	 * @param width destiny variable for width passed by reference
+	 * @param height destiny variable for height passed by reference
+	 * @return true if success
+	 * @return false if failed
+	 */
+	bool dimg_image_dimension(const char* target, int& width, int& height);
+
+	/**
+	 * @brief compute image bits per pixel
+	 * 
+	 * @param target image route
+	 * @param bpp destiny variable passed by reference
+	 * @return true if success
+	 * @return false if failed
+	 */
+	bool dimg_image_bpp(const char* target, int& bpp);
+
+	/**
+	 * @brief compute image dots per inch
+	 * 
+	 * @param target image route
+	 * @param dpi destiny variable passed by reference
+	 * @return true if success
+	 * @return false if failed
+	 */
+	bool dimg_image_dpi(const char* target, int& dpi);
+
+
 private:
 	bool initWindow();
 	bool initGlad();

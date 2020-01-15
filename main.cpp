@@ -1,5 +1,77 @@
 #include <iostream>
+#include <stdio.h>
+#include <chrono>
 #include "src/dimg.h"
+
+using namespace std;
+using namespace std::chrono;
+
+void printBenchmark(dimg api) {
+
+    //NEGATIVE FILTER COMPARISON
+
+    auto startCPU = high_resolution_clock::now();
+    api.dimg_negative("./zelda.jpg", "./output_negative_CPU.jpg", DIMG_CPU_ONLY);
+    auto stopCPU = high_resolution_clock::now();
+    auto durationCPU = duration_cast<seconds>(stopCPU - startCPU);
+
+    auto startGPU = high_resolution_clock::now();
+    api.dimg_negative("./zelda.jpg", "./output_negative_GPU.jpg", DIMG_HARDWARE_ACCELERATION);
+    auto stopGPU = high_resolution_clock::now();
+    auto durationGPU = duration_cast<seconds>(stopGPU - startGPU);
+
+    cout << "Negative Filter comparison: (seconds)" << endl;
+    cout <<"CPU: "<<durationCPU.count() <<" VS "<<" GPU: "<<durationGPU.count()<< endl;
+
+    //GRAYSCALE FILTER COMPARISON
+
+    startCPU = high_resolution_clock::now();
+    api.dimg_grayscale("./zelda.jpg", "./output_grayscale_CPU.jpg", DIMG_CPU_ONLY);
+    stopCPU = high_resolution_clock::now();
+    durationCPU = duration_cast<seconds>(stopCPU - startCPU);
+
+    startGPU = high_resolution_clock::now();
+    api.dimg_grayscale("./zelda.jpg", "./output_grayscale_GPU.jpg", DIMG_HARDWARE_ACCELERATION);
+    stopGPU = high_resolution_clock::now();
+    durationGPU = duration_cast<seconds>(stopGPU - startGPU);
+
+    cout << "Grayscale Filter comparison: (seconds)" << endl;
+    cout << "CPU: " << durationCPU.count() << " VS " << " GPU: " << durationGPU.count() << endl;
+
+    //MEAN FILTER COMPARISON
+
+    startCPU = high_resolution_clock::now();
+    api.dimg_mean_blur("./zelda.jpg", "./output_mean_CPU.jpg", 7, 7, DIMG_CPU_ONLY);
+    stopCPU = high_resolution_clock::now();
+    durationCPU = duration_cast<seconds>(stopCPU - startCPU);
+
+    startGPU = high_resolution_clock::now();
+    api.dimg_mean_blur("./zelda.jpg", "./output_mean_GPU.jpg", 7, 7, DIMG_HARDWARE_ACCELERATION);
+    stopGPU = high_resolution_clock::now();
+    durationGPU = duration_cast<seconds>(stopGPU - startGPU);
+
+    cout << "Mean Filter comparison: (seconds)" << endl;
+    cout << "CPU: " << durationCPU.count() << " VS " << " GPU: " << durationGPU.count() << endl;
+
+    //TOON SHADING COMPARISON
+
+    startCPU = high_resolution_clock::now();
+    api.dimg_toon_shading("./zelda.jpg", "./output_toon_shading_CPU.jpg", 5, 5, DIMG_CPU_ONLY);
+    stopCPU = high_resolution_clock::now();
+    durationCPU = duration_cast<seconds>(stopCPU - startCPU);
+
+    startGPU = high_resolution_clock::now();
+    api.dimg_toon_shading("./zelda.jpg", "./output_toon_shading_GPU.jpg", 5, 5, DIMG_HARDWARE_ACCELERATION);
+    stopGPU = high_resolution_clock::now();
+    durationGPU = duration_cast<seconds>(stopGPU - startGPU);
+
+    cout << "Toon shading Filter comparison: (seconds)" << endl;
+    cout << "CPU: " << durationCPU.count() << " VS " << " GPU: " << durationGPU.count() << endl;
+
+
+
+    getchar();
+}
 
 int main(int argc, char const *argv[])
 {
@@ -38,11 +110,13 @@ int main(int argc, char const *argv[])
     //api.dimg_image_dpi("./zelda.jpg", dpi);
     //std::cout << "dpi: " << dpi << std::endl;
     //api.dimg_terminate();
-    float kernel[] = { 1, 1,
+    /*float kernel[] = { 1, 1,
                       -1,-1 };
     api.dimg_custom_filter("./zelda.jpg", "./output_custom_GPU.jpg", 2, 2, kernel, DIMG_HARDWARE_ACCELERATION);
-    api.dimg_custom_filter("./zelda.jpg", "./output_custom_CPU.jpg", 2, 2, kernel, DIMG_CPU_ONLY);
+    api.dimg_custom_filter("./zelda.jpg", "./output_custom_CPU.jpg", 2, 2, kernel, DIMG_CPU_ONLY);*/
 
+
+    printBenchmark(api);
 
     return 0;
 }
