@@ -10,7 +10,6 @@
 
 #define DIMG_HARDWARE_ACCELERATION 0x0001
 #define DIMG_CPU_ONLY 0x0002
-<<<<<<< HEAD
 #define	DIMG_NONE 0x0003
 #define	DIMG_COLOR 0x0004
 #define	DIMG_NEGATIVE 0x0005
@@ -27,21 +26,6 @@
 #define DIMG_RED 0x0016
 #define DIMG_GREEN 0x0017
 #define DIMG_BLUE 0x0018
-=======
-#define DIMG_NONE 0x0003
-#define DIMG_COLOR 0x0004
-#define DIMG_NEGATIVE 0x0005
-#define DIMG_GRAYSCALE 0x0006
-#define DIMG_BLACK_AND_WHITE 0x0007
-#define DIMG_SOBEL_EDGE_DETECTION 0x0008
-#define DIMG_ROBERTS_EDGE_DETECTION 0x0009
-#define DIMG_PREWITT_EDGE_DETECTION 0x0010
-#define DIMG_LOG_EDGE_DETECTION 0x0011
-#define DIMG_MEAN_BLUR 0x0012
-#define DIMG_MEDIAN 0x0013
-#define DIMG_TOON_SHADING 0x0014
-#define DIMG_RED 0x0015
->>>>>>> 30e7042731c852594332e49dd6896220c9011c3b
 
 typedef unsigned int DIMGenum;
 
@@ -101,28 +85,15 @@ public:
 	 * @return false if failed 
 	 */
 	bool init();
-<<<<<<< HEAD
-	bool dimg_negative (const char* target, const char* dest, DIMGenum hwAcc);
-	bool dimg_grayscale(const char* target, const char* dest, DIMGenum hwAcc);
-	bool dimg_black_and_white(const char* target, const char* dest, int threshold, DIMGenum hwAcc);
-	bool dimg_mean_blur(const char* target, const char* dest, int kernelWidth, int kernelHeight, DIMGenum hwAcc);
-	bool dimg_median(const char* target, const char* dest, int kernelWidth, int kernelHeight, DIMGenum hwAcc);
-	bool dimg_sobel_edge_detection(const char* target, const char* dest, int kernelWidth, int kernelHeight, DIMGenum hwAcc);
-	bool dimg_roberts_edge_detection(const char* target, const char* dest, int kernelWidth, int kernelHeight, DIMGenum hwAcc);
-	bool dimg_prewitt_edge_detection(const char* target, const char* dest, int kernelWidth, int kernelHeight, DIMGenum hwAcc);
-	bool dimg_log_edge_detection(const char* target, const char* dest, int kernelWidth, int kernelHeight,float sigma, DIMGenum hwAcc);
-	bool dimg_toon_shading(const char* target, const char* dest, int borderRadius, int colorDiscretization, DIMGenum hwAcc);
 	bool dimg_custom_filter(const char* target, const char* dest,int kernelWidth, int kernelHeight, float* kernelMatrix, DIMGenum hwAcc);
-	bool dimg_histogram(const char* target, const char* dest, int width, int height, DIMGenum type);
 	bool dimg_unique_colors(const char* target, int& unique_colors);
 	bool dimg_image_dimension(const char* target, int& width, int& height);
 	bool dimg_image_bpp(const char* target, int& bpp);
 	bool dimg_image_dpi(const char* target, int& dpi);
 	
 // Private functions
-=======
 
-	
+
 	/**
 	 * @brief calculates the negative of an image 
 	 * 
@@ -259,28 +230,22 @@ public:
 	 * @param dest directory of the result image
 	 * @param width width size of the histogram
 	 * @param height height size of the histogram
-	 * @param offset 0 for red channel histogram, 1 for green channel histogram and 3 for blue channel histogram
+	 * @param type DIMG_RED for red channel histogram, DIMG_GREEN for green channel histogram and DIMG_BLUE for blue channel histogram
 	 * @return true if success
 	 * @return false if failed
 	 */
-	bool dimg_histogram(const char *target, const char *dest, int width, int height, int offset);
+	bool dimg_histogram(const char *target, const char *dest, int width, int height, DIMGenum type);
 	//bool dimg_custom_filter(std::vector<float> kernel);
 	// Private functions
->>>>>>> 30e7042731c852594332e49dd6896220c9011c3b
 private:
 	bool initWindow();
 	bool initGlad();
 	void initGL();
 	void buildGeometry();
 	void setKernel(DIMGenum type, unsigned int &kernel, int kernelWidth, int kernelHeight);
-<<<<<<< HEAD
 	void setKernel(DIMGenum type, unsigned int& gx, unsigned int& gy, int kernelWidth, int kernelHeight);
 	void setKernel(DIMGenum type, unsigned int& gx, float sigma, int kernelWidth, int kernelHeight);
 	void setKernel(DIMGenum type, unsigned int& kernel, float* kernelMatrix, int kernelWidth, int kernelHeight);
-=======
-	void setKernel(DIMGenum type, unsigned int &gx, unsigned int &gy, int kernelWidth, int kernelHeight);
-	void setKernel(DIMGenum type, unsigned int &gx, float sigma, int kernelWidth, int kernelHeight);
->>>>>>> 30e7042731c852594332e49dd6896220c9011c3b
 	void setKernel(DIMGenum type, std::vector<float> &kernel, int kernelWidth, int kernelHeight);
 	void setKernel(DIMGenum type, std::vector<float> &gx, std::vector<float> &gy, int kernelWidth, int kernelHeight);
 	void setKernel(DIMGenum type, std::vector<float> &gx, float sigma, int kernelWidth, int kernelHeight);
