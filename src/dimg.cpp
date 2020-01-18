@@ -13,7 +13,7 @@ DIMG::DIMG(){
 	kernelData = vector<int>(49, 0);
 	// Default 3x3 Kernel's size
 	size = glm::ivec2(3);
-	k_size = size;
+	old_size = size;
 	currentShader = DIMG_NONE;
 	c = 1.0f;
 	cc = c;
@@ -102,6 +102,9 @@ void DIMG::setFloatThreshold(float threshold) {
 }
 
 void DIMG::sort(std::vector<glm::ivec3> &array){
+
+	//bubble sort
+
 	glm::vec3 temp;
 	for (unsigned int i = 0; i < array.size(); i++)
 		for (unsigned int j = 0; j < array.size(); j++)
@@ -159,6 +162,7 @@ void DIMG::createTexture2D(GLuint &target, GLubyte* data, glm::ivec2 size){
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, size.x, size.y, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
+
 GLuint DIMG::loadImage(string path) {
 
 	if (path == "") {
@@ -241,89 +245,27 @@ void DIMG::color(GLuint image) {
 }
 
 void DIMG::negative(GLuint image, bool hardwareAcceleration){
-	if (hardwareAcceleration) {
-		shader = new Shader("assets/shaders/negative.vert", "assets/shaders/negative.frag");
-	}
-	else {
-		if (currentShader != DIMG_NEGATIVE) {
-			unsigned char* negative = new unsigned char[res.x * res.y * 3];
-			memcpy(negative, imageData, res.x * res.y * 3);
-			for (int i = 0; i < res.x*res.y*3; i++)
-				negative[i] = 255 - imageData[i];
-			createTexture2D(cpuTexture, negative, res);
-		}
-		shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
-		image = cpuTexture;
-	}
+	shader = new Shader("assets/shaders/negative.vert", "assets/shaders/negative.frag");
 	currentShader = DIMG_NEGATIVE;
 	shader->use();
-	// Send image to GPU
 	shader->setInt("image", 0);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image);
 }
 
 void DIMG::grayscale(GLuint image, bool hardwareAcceleration) {
-	if (hardwareAcceleration)
-		shader = new Shader("assets/shaders/grayscale.vert", "assets/shaders/grayscale.frag");
-	else {
-		if (currentShader != DIMG_GRAYSCALE) {
-			unsigned char* grayscale = new unsigned char[res.x * res.y * 3] ;
-			memcpy(grayscale, imageData, res.x * res.y * 3);
-			int gs_value;
-			for (int i = 0; i < res.x * res.y * 3 - 3; i += 3) {
-				gs_value = (int)(imageData[i] * 0.2989) + 
-						   (int)(imageData[i + 1] * 0.5870) +
-						   (int)(imageData[i + 2] * 0.1140);
-				// Red
-				grayscale[i] = gs_value;
-				// Green
-				grayscale[i + 1] = gs_value;
-				// Blue
-				grayscale[i + 2] = gs_value;
-			}
-			createTexture2D(cpuTexture, grayscale, res);
-		}
-		shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
-		image = cpuTexture;
-	}
+	shader = new Shader("assets/shaders/grayscale.vert", "assets/shaders/grayscale.frag");
 	currentShader = DIMG_GRAYSCALE;
 	shader->use();
-	// Send image to GPU
 	shader->setInt("image", 0);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image);
 }
 
 void DIMG::blackandwhite(GLuint image, bool hardwareAcceleration) {
-	if (hardwareAcceleration)
-		shader = new Shader("assets/shaders/blackandwhite.vert", "assets/shaders/blackandwhite.frag");
-	else {
-		if (currentShader != DIMG_BLACKANDWHITE || ctl_threshold != i_threshold ) {
-			unsigned char* blackandwhite = new unsigned char[res.x * res.y * 3];
-			memcpy(blackandwhite, imageData, res.x * res.y * 3);
-			int gs_value, bnw;
-			ctl_threshold = i_threshold;
-			for (int i = 0; i < res.x * res.y * 3 - 3; i += 3) {
-				gs_value = (int)(imageData[i] * 0.2989) +
-					(int)(imageData[i + 1] * 0.5870) +
-					(int)(imageData[i + 2] * 0.1140);
-				bnw = gs_value > i_threshold ? 255 : 0;
-				// Red
-				blackandwhite[i]     = bnw;
-				// Green
-				blackandwhite[i + 1] = bnw;
-				// Blue
-				blackandwhite[i + 2] = bnw;
-			}
-			createTexture2D(cpuTexture, blackandwhite, res);
-		}
-		shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
-		image = cpuTexture;
-	}
+	shader = new Shader("assets/shaders/blackandwhite.vert", "assets/shaders/blackandwhite.frag");
 	currentShader = DIMG_BLACKANDWHITE;
 	shader->use();
-	// Send image to GPU
 	shader->setInt("image", 0);
 	shader->setFloat("f_threshold", f_threshold);
 	glActiveTexture(GL_TEXTURE0);
@@ -331,79 +273,12 @@ void DIMG::blackandwhite(GLuint image, bool hardwareAcceleration) {
 }
 
 void DIMG::sobel(GLuint image, bool hardwareAcceleration){
-	if (hardwareAcceleration) {
-		if (currentShader != DIMG_SOBEL_GRAD || k_size != size) {
-			currentShader = DIMG_SOBEL_GRAD;
-			setKernel(hardwareAcceleration);
-			k_size = size;
-			shader = new Shader("assets/shaders/sobel.vert", "assets/shaders/sobel.frag");
-		}
-	}
-	else {
-		if (currentShader != DIMG_SOBEL_GRAD || k_size != size) {
-			currentShader = DIMG_SOBEL_GRAD;
-			setKernel(hardwareAcceleration);
-			k_size = size;
-			unsigned char* output = new unsigned char[res.x * res.y * 3];
-			memset(output, 0, res.x * res.y * 3);
-			glm::ivec3 sobel;
-			glm::vec3  s_gx, s_gy;
-			glm::ivec2 pivot = glm::ivec2(k_size.x / 2, k_size.y / 2);
-			glm::ivec2 img_pos, k_pos;
-			int cols, rgb_offset, totalSize, gs_value;
-			totalSize = size.x * size.y;
-			cols = res.x * 3;
-			// Image Loop
-			for (int i = 0; i < res.y; i++) {
-				for (int j = 0; j < cols; j += 3) {
-					sobel = glm::ivec3(0);
-					s_gx  = glm::ivec3(0);
-					s_gy  = glm::ivec3(0);
-					img_pos = glm::ivec2(i * cols, j);
-					// Kernel Loop
-					for (int ii = 0; ii < k_size.x; ii++) {
-						//printf("--------------------- KROW: %i\n", ii);
-						for (int jj = 0; jj < k_size.y; jj++) {
-							rgb_offset = (jj - pivot.y) * 3;
-							k_pos = glm::ivec2(img_pos.x + (ii - pivot.x) * cols, img_pos.y + rgb_offset);
-							if (!isInImage(k_pos.x, k_pos.y))
-								continue;
-							/*					printf("[img]rgb(%i,%i,%i)\n",
-													imageData[k_pos.x + (k_pos.y + 0)],
-													imageData[k_pos.x + (k_pos.y + 1)],
-													imageData[k_pos.x + (k_pos.y + 2)]);*/
-							// X-axis Gradient
-								// red
-								s_gx.r += imageData[k_pos.x + (k_pos.y + 0)] * gxData[ii * 7 + jj];
-								// green
-								s_gx.g += imageData[k_pos.x + (k_pos.y + 1)] * gxData[ii * 7 + jj];
-								// blue
-								s_gx.b += imageData[k_pos.x + (k_pos.y + 2)] * gxData[ii * 7 + jj];
-							// Y-axis Gradient
-								// red
-								s_gy.r += imageData[k_pos.x + (k_pos.y + 0)] * gyData[ii * 7 + jj];
-								// green
-								s_gy.g += imageData[k_pos.x + (k_pos.y + 1)] * gyData[ii * 7 + jj];
-								// blue
-								s_gy.b += imageData[k_pos.x + (k_pos.y + 2)] * gyData[ii * 7 + jj];
-						}
-						//printf("\n");
-					}
-					sobel = glm::round(glm::sqrt(s_gx * s_gx + s_gy * s_gy));
-					gs_value = (int)(sobel.r * 0.2989) +
-							   (int)(sobel.g * 0.5870) +
-							   (int)(sobel.b * 0.1140);
-					sobel = glm::ivec3(gs_value, gs_value, gs_value);
-					// Edge detection final per pixel color
-					output[i * cols + (j + 0)] = sobel.r;
-					output[i * cols + (j + 1)] = sobel.g;
-					output[i * cols + (j + 2)] = sobel.b;
-				}
-			}
-			createTexture2D(cpuTexture, output, res);
-		}
-		shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
-		image = cpuTexture;
+
+	if (currentShader != DIMG_SOBEL_GRAD || old_size != size) {
+		currentShader = DIMG_SOBEL_GRAD;
+		setKernel(hardwareAcceleration);
+		old_size = size;
+		shader = new Shader("assets/shaders/sobel.vert", "assets/shaders/sobel.frag");
 	}
 	
 	shader->use();
@@ -422,80 +297,14 @@ void DIMG::sobel(GLuint image, bool hardwareAcceleration){
 }
 
 void DIMG::roberts(GLuint image, bool hardwareAcceleration) {
-	if (hardwareAcceleration) {
-		if (currentShader != DIMG_ROBERTS_GRAD || k_size != size) {
-			currentShader = DIMG_ROBERTS_GRAD;
-			setKernel(hardwareAcceleration);
-			k_size = size;
-			shader = new Shader("assets/shaders/roberts.vert", "assets/shaders/roberts.frag");
-		}
+
+	if (currentShader != DIMG_ROBERTS_GRAD || old_size != size) {
+		currentShader = DIMG_ROBERTS_GRAD;
+		setKernel(hardwareAcceleration);
+		old_size = size;
+		shader = new Shader("assets/shaders/roberts.vert", "assets/shaders/roberts.frag");
 	}
-	else {
-		if (currentShader != DIMG_ROBERTS_GRAD || k_size != size) {
-			currentShader = DIMG_ROBERTS_GRAD;
-			setKernel(hardwareAcceleration);
-			k_size = size;
-			unsigned char* output = new unsigned char[res.x * res.y * 3];
-			memset(output, 0, res.x * res.y * 3);
-			glm::ivec3 roberts;
-			glm::vec3  r_gx, r_gy;
-			glm::ivec2 pivot = glm::ivec2(k_size.x / 2, k_size.y / 2);
-			glm::ivec2 img_pos, k_pos;
-			int cols, rgb_offset, totalSize, gs_value;
-			totalSize = size.x * size.y;
-			cols = res.x * 3;
-			// Image Loop
-			for (int i = 0; i < res.y; i++) {
-				for (int j = 0; j < cols; j += 3) {
-					roberts = glm::ivec3(0);
-					r_gx = glm::ivec3(0);
-					r_gy = glm::ivec3(0);
-					img_pos = glm::ivec2(i * cols, j);
-					// Kernel Loop
-					for (int ii = 0; ii < k_size.x; ii++) {
-						//printf("--------------------- KROW: %i\n", ii);
-						for (int jj = 0; jj < k_size.y; jj++) {
-							rgb_offset = (jj - pivot.y) * 3;
-							k_pos = glm::ivec2(img_pos.x + (ii - pivot.x) * cols, img_pos.y + rgb_offset);
-							if (!isInImage(k_pos.x, k_pos.y))
-								continue;
-							/*					printf("[img]rgb(%i,%i,%i)\n",
-													imageData[k_pos.x + (k_pos.y + 0)],
-													imageData[k_pos.x + (k_pos.y + 1)],
-													imageData[k_pos.x + (k_pos.y + 2)]);*/
-													// X-axis Gradient
-														// red
-							r_gx.r += imageData[k_pos.x + (k_pos.y + 0)] * gxData[ii * 7 + jj];
-							// green
-							r_gx.g += imageData[k_pos.x + (k_pos.y + 1)] * gxData[ii * 7 + jj];
-							// blue
-							r_gx.b += imageData[k_pos.x + (k_pos.y + 2)] * gxData[ii * 7 + jj];
-							// Y-axis Gradient
-								// red
-							r_gy.r += imageData[k_pos.x + (k_pos.y + 0)] * gyData[ii * 7 + jj];
-							// green
-							r_gy.g += imageData[k_pos.x + (k_pos.y + 1)] * gyData[ii * 7 + jj];
-							// blue
-							r_gy.b += imageData[k_pos.x + (k_pos.y + 2)] * gyData[ii * 7 + jj];
-						}
-						//printf("\n");
-					}
-					roberts = glm::round(glm::sqrt(r_gx * r_gx + r_gy * r_gy));
-					gs_value = (int)(roberts.r * 0.2989) +
-						(int)(roberts.g * 0.5870) +
-						(int)(roberts.b * 0.1140);
-					roberts = glm::ivec3(gs_value, gs_value, gs_value);
-					// Edge detection final per pixel color
-					output[i * cols + (j + 0)] = roberts.r;
-					output[i * cols + (j + 1)] = roberts.g;
-					output[i * cols + (j + 2)] = roberts.b;
-				}
-			}
-			createTexture2D(cpuTexture, output, res);
-		}
-		shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
-		image = cpuTexture;
-	}
+	
 	shader->use();
 	// Send image to GPU
 	shader->setInt("image", 0);
@@ -512,79 +321,12 @@ void DIMG::roberts(GLuint image, bool hardwareAcceleration) {
 }
 
 void DIMG::prewitt(GLuint image, bool hardwareAcceleration) {
-	if (hardwareAcceleration) {
-		if (currentShader != DIMG_PREWITT_GRAD || k_size != size) {
-			currentShader = DIMG_PREWITT_GRAD;
-			setKernel(hardwareAcceleration);
-			k_size = size;
-			shader = new Shader("assets/shaders/prewitt.vert", "assets/shaders/prewitt.frag");
-		}
-	}
-	else {
-		if (currentShader != DIMG_PREWITT_GRAD || k_size != size) {
-			currentShader = DIMG_PREWITT_GRAD;
-			setKernel(hardwareAcceleration);
-			k_size = size;
-			unsigned char* output = new unsigned char[res.x * res.y * 3];
-			memset(output, 0, res.x * res.y * 3);
-			glm::ivec3 prewitt;
-			glm::vec3  p_gx, p_gy;
-			glm::ivec2 pivot = glm::ivec2(k_size.x / 2, k_size.y / 2);
-			glm::ivec2 img_pos, k_pos;
-			int cols, rgb_offset, totalSize, gs_value;
-			totalSize = size.x * size.y;
-			cols = res.x * 3;
-			// Image Loop
-			for (int i = 0; i < res.y; i++) {
-				for (int j = 0; j < cols; j += 3) {
-					prewitt = glm::ivec3(0);
-					p_gx = glm::ivec3(0);
-					p_gy = glm::ivec3(0);
-					img_pos = glm::ivec2(i * cols, j);
-					// Kernel Loop
-					for (int ii = 0; ii < k_size.x; ii++) {
-						//printf("--------------------- KROW: %i\n", ii);
-						for (int jj = 0; jj < k_size.y; jj++) {
-							rgb_offset = (jj - pivot.y) * 3;
-							k_pos = glm::ivec2(img_pos.x + (ii - pivot.x) * cols, img_pos.y + rgb_offset);
-							if (!isInImage(k_pos.x, k_pos.y))
-								continue;
-							/*					printf("[img]rgb(%i,%i,%i)\n",
-													imageData[k_pos.x + (k_pos.y + 0)],
-													imageData[k_pos.x + (k_pos.y + 1)],
-													imageData[k_pos.x + (k_pos.y + 2)]);*/
-													// X-axis Gradient
-														// red
-							p_gx.r += imageData[k_pos.x + (k_pos.y + 0)] * gxData[ii * 7 + jj];
-							// green
-							p_gx.g += imageData[k_pos.x + (k_pos.y + 1)] * gxData[ii * 7 + jj];
-							// blue
-							p_gx.b += imageData[k_pos.x + (k_pos.y + 2)] * gxData[ii * 7 + jj];
-							// Y-axis Gradient
-								// red
-							p_gy.r += imageData[k_pos.x + (k_pos.y + 0)] * gyData[ii * 7 + jj];
-							// green
-							p_gy.g += imageData[k_pos.x + (k_pos.y + 1)] * gyData[ii * 7 + jj];
-							// blue
-							p_gy.b += imageData[k_pos.x + (k_pos.y + 2)] * gyData[ii * 7 + jj];
-						}
-						//printf("\n");
-					}
-					prewitt = glm::round(glm::sqrt(p_gx * p_gx + p_gy * p_gy));
-					gs_value = (int)(prewitt.r * 0.2989) +
-						(int)(prewitt.g * 0.5870) +
-						(int)(prewitt.b * 0.1140);
-					prewitt = glm::ivec3(gs_value, gs_value, gs_value);
-					// Edge detection final per pixel color
-					output[i * cols + (j + 0)] = prewitt.r;
-					output[i * cols + (j + 1)] = prewitt.g;
-					output[i * cols + (j + 2)] = prewitt.b;
-				}
-			}
-			createTexture2D(cpuTexture, output, res);
-		}
-		shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
-		image = cpuTexture;
+	
+	if (currentShader != DIMG_PREWITT_GRAD || old_size != size) {
+		currentShader = DIMG_PREWITT_GRAD;
+		setKernel(hardwareAcceleration);
+		old_size = size;
+		shader = new Shader("assets/shaders/prewitt.vert", "assets/shaders/prewitt.frag");
 	}
 	shader->use();
 	// Send image to GPU
@@ -602,135 +344,34 @@ void DIMG::prewitt(GLuint image, bool hardwareAcceleration) {
 }
 
 void DIMG::mean(GLuint image, bool hardwareAcceleration) {
-	if (hardwareAcceleration) {
-		if (currentShader != DIMG_MEAN_BLUR || k_size != size) {
-			currentShader = DIMG_MEAN_BLUR;
-			setKernel(hardwareAcceleration);
-			k_size = size;
-			shader = new Shader("assets/shaders/mean.vert", "assets/shaders/mean.frag");
-		}
-	}
-	else{
-		if (currentShader != DIMG_MEAN_BLUR || k_size != size) {
-			currentShader = DIMG_MEAN_BLUR;
-			setKernel(hardwareAcceleration);
-			k_size = size;
-			unsigned char* output = new unsigned char[res.x * res.y * 3];
-			memset(output, 0, res.x * res.y * 3);
-			glm::ivec3 mean;
-			glm::ivec2 pivot = glm::ivec2(k_size.x / 2, k_size.y / 2);
-			glm::ivec2 img_pos, k_pos;
-			int cols, rgb_offset, totalSize;
-			totalSize = size.x * size.y;
-			cols = res.x * 3;
-			// Image Loop
-			for (int i = 0; i < res.y; i++) {
-				for (int j = 0; j < cols; j+=3){
-					mean = glm::ivec3(0);
-					img_pos = glm::ivec2(i * cols, j);
-					// Kernel Loop
-					for (int ii = 0; ii < k_size.x; ii++) {
-						//printf("--------------------- KROW: %i\n", ii);
-						for (int jj = 0; jj < k_size.y; jj++) {
-							rgb_offset = (jj - pivot.y) * 3;
-							k_pos = glm::ivec2(img_pos.x + (ii - pivot.x)*cols, img_pos.y + rgb_offset);
-							if (!isInImage(k_pos.x, k_pos.y))
-								continue;
-		/*					printf("[img]rgb(%i,%i,%i)\n",
-								imageData[k_pos.x + (k_pos.y + 0)],
-								imageData[k_pos.x + (k_pos.y + 1)],
-								imageData[k_pos.x + (k_pos.y + 2)]);*/
-							// red
-							mean.r += imageData[k_pos.x + (k_pos.y + 0)] * kernelData[ii * 7 + jj];
-							// green
-							mean.g += imageData[k_pos.x + (k_pos.y + 1)] * kernelData[ii * 7 + jj];
-							// blue
-							mean.b += imageData[k_pos.x + (k_pos.y + 2)] * kernelData[ii * 7 + jj];
-						}
-						//printf("\n");
-					}
-					// Average color
-					mean.r = mean.r / totalSize;
-					mean.g = mean.g / totalSize;
-					mean.b = mean.b / totalSize;
-					output[i * cols + (j + 0)] = mean.r;
-					output[i * cols + (j + 1)] = mean.g;
-					output[i * cols + (j + 2)] = mean.b;
-				}
-			}
-			createTexture2D(cpuTexture, output, res);
-		}
-		shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
-		image = cpuTexture;
+
+	if (currentShader != DIMG_MEAN_BLUR || old_size != size) {
+		currentShader = DIMG_MEAN_BLUR;
+		setKernel(hardwareAcceleration);
+		old_size = size;
+		shader = new Shader("assets/shaders/mean.vert", "assets/shaders/mean.frag");
 	}
 
-		shader->use();
-		// Send image to GPU
-		shader->setInt("image", 0);
-		shader->setInt("kernel", 1);
-		shader->setInt("kWidth", size.x);
-		shader->setInt("kHeight", size.y);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, image);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_1D, kernel);
+	shader->use();
+	// Send image to GPU
+	shader->setInt("image", 0);
+	shader->setInt("kernel", 1);
+	shader->setInt("kWidth", size.x);
+	shader->setInt("kHeight", size.y);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, image);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_1D, kernel);
 }
 
 void DIMG::median(GLuint image, bool hardwareAcceleration) {
-	if (hardwareAcceleration) {
-		if (currentShader != DIMG_MEDIAN_BLUR || k_size != size) {
-			
-			k_size = size;
-			shader = new Shader("assets/shaders/median.vert", "assets/shaders/median.frag");
-		}
-	}
-	else {
-		if (currentShader != DIMG_MEDIAN_BLUR || k_size != size){
-			// History kernel size for control purposes
-			k_size = size;
-			// Output image
-			unsigned char* output = new unsigned char[res.x * res.y * 3];
-			memset(output, 0, res.x * res.y * 3);
-			// Median CPU computation 
-			std::vector<glm::ivec3> rgb_array;
-			glm::ivec2 pivot = glm::ivec2(k_size.x / 2, k_size.y / 2);
-			glm::ivec2 img_pos, k_pos;
-			int cols, rgb_offset, totalSize;
-			totalSize = size.x * size.y;
-			cols = res.x * 3;
-			// Image Loop
-			for (int i = 0; i < res.y; i++){
-				for (int j = 0; j < cols; j += 3){
-					img_pos = glm::ivec2(i * cols, j);
-					// Kernel Loop
-					for (int ii = 0; ii < k_size.x; ii++) {
-						for (int jj = 0; jj < k_size.y; jj++) {
-							rgb_offset = (jj - pivot.y) * 3;
-							k_pos = glm::ivec2(img_pos.x + (ii - pivot.x) * cols, img_pos.y + rgb_offset);
-							if (!isInImage(k_pos.x, k_pos.y))
-								continue;
-							rgb_array.push_back(glm::ivec3(
-								imageData[k_pos.x + (k_pos.y + 0)],
-								imageData[k_pos.x + (k_pos.y + 1)],
-								imageData[k_pos.x + (k_pos.y + 2)]
-							));
-						}
-					}
 
-					// Sort colors
-					sort(rgb_array);
-					// Assign median color to output image
-					output[i * cols + (j + 0)] = rgb_array[rgb_array.size() / 2].r;
-					output[i * cols + (j + 1)] = rgb_array[rgb_array.size() / 2].g;
-					output[i * cols + (j + 2)] = rgb_array[rgb_array.size() / 2].b;
-					rgb_array.clear();
-				}
-			}
-			createTexture2D(cpuTexture, output, res);
-		}
-		shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
-		image = cpuTexture;
+	if (currentShader != DIMG_MEDIAN_BLUR || old_size != size) {
+
+		old_size = size;
+		shader = new Shader("assets/shaders/median.vert", "assets/shaders/median.frag");
 	}
+
 	currentShader = DIMG_MEDIAN_BLUR;
 	shader->use();
 	// Send image to GPU
@@ -746,65 +387,16 @@ void DIMG::median(GLuint image, bool hardwareAcceleration) {
 
 void DIMG::gaussianLaplace(GLuint image, bool hardwareAcceleration) {
 	if (hardwareAcceleration) {
-		if (currentShader != DIMG_LOG_GRAD || k_size != size || cc != c) {
+		if (currentShader != DIMG_LOG_GRAD || old_size != size || cc != c) {
 			currentShader = DIMG_LOG_GRAD;
 			setKernel(hardwareAcceleration);
-			k_size = size;
+			old_size = size;
 			cc = c;
 			shader = new Shader("assets/shaders/gaussianLaplace.vert", "assets/shaders/gaussianLaplace.frag");
 		}
 	}
 	else {
-		if (currentShader != DIMG_LOG_GRAD || k_size != size || cc != c) {
-			currentShader = DIMG_LOG_GRAD;
-			setKernel(hardwareAcceleration);
-			k_size = size;
-			cc = c;
-			unsigned char* output = new unsigned char[res.x * res.y * 3];
-			memset(output, 0, res.x * res.y * 3);
-			glm::vec3  LoG_gx;
-			glm::ivec2 pivot = glm::ivec2(k_size.x / 2, k_size.y / 2);
-			glm::ivec2 img_pos, k_pos;
-			int cols, rgb_offset, totalSize;
-			totalSize = size.x * size.y;
-			cols = res.x * 3;
-			// Image Loop
-			for (int i = 0; i < res.y; i++) {
-				for (int j = 0; j < cols; j += 3) {
-					LoG_gx = glm::vec3(0);
-					img_pos = glm::ivec2(i * cols, j);
-					// Kernel Loop
-					for (int ii = 0; ii < k_size.x; ii++) {
-						//printf("--------------------- KROW: %i\n", ii);
-						for (int jj = 0; jj < k_size.y; jj++) {
-							rgb_offset = (jj - pivot.y) * 3;
-							k_pos = glm::ivec2(img_pos.x + (ii - pivot.x) * cols, img_pos.y + rgb_offset);
-							if (!isInImage(k_pos.x, k_pos.y))
-								continue;
-							/*					printf("[img]rgb(%i,%i,%i)\n",
-													imageData[k_pos.x + (k_pos.y + 0)],
-													imageData[k_pos.x + (k_pos.y + 1)],
-													imageData[k_pos.x + (k_pos.y + 2)]);*/
-						// X-axis Gradient
-							// red
-							LoG_gx.r += imageData[k_pos.x + (k_pos.y + 0)] * gxData[ii * 7 + jj];
-							// green
-							LoG_gx.g += imageData[k_pos.x + (k_pos.y + 1)] * gxData[ii * 7 + jj];
-							// blue
-							LoG_gx.b += imageData[k_pos.x + (k_pos.y + 2)] * gxData[ii * 7 + jj];
-						}
-						//printf("\n");
-					}
-					// Edge detection final per pixel color
-					output[i * cols + (j + 0)] = (int)LoG_gx.r;
-					output[i * cols + (j + 1)] = (int)LoG_gx.g;
-					output[i * cols + (j + 2)] = (int)LoG_gx.b;
-				}
-			}
-			createTexture2D(cpuTexture, output, res);
-		}
-		shader = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
-		image = cpuTexture;
+		
 	}
 	shader->use();
 	// Send image to GPU
@@ -879,7 +471,7 @@ void DIMG::setKernel(bool hardwareAcceleration){
 				if (glm::ivec2(i, j) == pivot) {
 					gxData[i * 7 + j] = 0;
 					gyData[i * 7 + j] = 0;
-					std::cout << "0   ";
+					//std::cout << "0   ";
 					continue;
 				}
 				// Gx_ij = i / (i*i + j*j)

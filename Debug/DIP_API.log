@@ -1,4 +1,8 @@
-﻿  dimg.cpp
+﻿  imgui.cpp
+  imgui_draw.cpp
+  imgui_widgets.cpp
   UserInterface.cpp
+  dimg.cpp
+  main.cpp
   Generating Code...
   DIP_API.vcxproj -> C:\Users\AlchenTheCat\Documents\PROGRAMMING\OpenGL\DIP_API_project\Debug\DIP_API.exe

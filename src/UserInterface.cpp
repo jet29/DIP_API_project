@@ -10,7 +10,7 @@ int   UI::res[] = { 0,0 };
 int   UI::bpp = 0;
 int   UI::dpi = 0;
 long  UI::uniqueColors = 0;
-bool  UI::hardwareAcceleration = 0;
+bool  UI::hardwareAcceleration = 1;
 float UI::f_threshold = 0.5f;
 int   UI::i_threshold = 122;
 

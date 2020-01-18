@@ -32,7 +32,7 @@ private:
 	GLuint kernel, gx, gy;
 	int currentShader;
 	bool flag;
-	glm::ivec2 size,k_size;
+	glm::ivec2 size,old_size;
 	glm::ivec2 res;
 	int bpp,dpi;
 	long uniqueColors;

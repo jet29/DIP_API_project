@@ -434,8 +434,8 @@ int main(int arg, char **argv)
    typedef signed   int    stbtt_int32;
    #endif
 
-   typedef char stbtt__check_size32[sizeof(stbtt_int32)==4 ? 1 : -1];
-   typedef char stbtt__check_size16[sizeof(stbtt_int16)==2 ? 1 : -1];
+   typedef char stbtt__checold_size32[sizeof(stbtt_int32)==4 ? 1 : -1];
+   typedef char stbtt__checold_size16[sizeof(stbtt_int16)==2 ? 1 : -1];
 
    // e.g. #define your own STBTT_ifloor/STBTT_iceil() to avoid math.h
    #ifndef STBTT_ifloor

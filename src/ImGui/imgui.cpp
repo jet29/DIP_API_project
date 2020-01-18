@@ -7347,7 +7347,7 @@ void ImGui::OpenPopupEx(ImGuiID id)
 {
     ImGuiContext& g = *GImGui;
     ImGuiWindow* parent_window = g.CurrentWindow;
-    int current_stack_size = g.BeginPopupStack.Size;
+    int current_stacold_size = g.BeginPopupStack.Size;
     ImGuiPopupData popup_ref; // Tagged as new ref as Window will be set back to NULL if we write this into OpenPopupStack.
     popup_ref.PopupId = id;
     popup_ref.Window = NULL;
@@ -7358,7 +7358,7 @@ void ImGui::OpenPopupEx(ImGuiID id)
     popup_ref.OpenMousePos = IsMousePosValid(&g.IO.MousePos) ? g.IO.MousePos : popup_ref.OpenPopupPos;
 
     //IMGUI_DEBUG_LOG("OpenPopupEx(0x%08X)\n", g.FrameCount, id);
-    if (g.OpenPopupStack.Size < current_stack_size + 1)
+    if (g.OpenPopupStack.Size < current_stacold_size + 1)
     {
         g.OpenPopupStack.push_back(popup_ref);
     }
@@ -7367,20 +7367,20 @@ void ImGui::OpenPopupEx(ImGuiID id)
         // Gently handle the user mistakenly calling OpenPopup() every frame. It is a programming mistake! However, if we were to run the regular code path, the ui
         // would become completely unusable because the popup will always be in hidden-while-calculating-size state _while_ claiming focus. Which would be a very confusing
         // situation for the programmer. Instead, we silently allow the popup to proceed, it will keep reappearing and the programming error will be more obvious to understand.
-        if (g.OpenPopupStack[current_stack_size].PopupId == id && g.OpenPopupStack[current_stack_size].OpenFrameCount == g.FrameCount - 1)
+        if (g.OpenPopupStack[current_stacold_size].PopupId == id && g.OpenPopupStack[current_stacold_size].OpenFrameCount == g.FrameCount - 1)
         {
-            g.OpenPopupStack[current_stack_size].OpenFrameCount = popup_ref.OpenFrameCount;
+            g.OpenPopupStack[current_stacold_size].OpenFrameCount = popup_ref.OpenFrameCount;
         }
         else
         {
             // Close child popups if any, then flag popup for open/reopen
-            g.OpenPopupStack.resize(current_stack_size + 1);
-            g.OpenPopupStack[current_stack_size] = popup_ref;
+            g.OpenPopupStack.resize(current_stacold_size + 1);
+            g.OpenPopupStack[current_stacold_size] = popup_ref;
         }
 
         // When reopening a popup we first refocus its parent, otherwise if its parent is itself a popup it would get closed by ClosePopupsOverWindow().
         // This is equivalent to what ClosePopupToLevel() does.
-        //if (g.OpenPopupStack[current_stack_size].PopupId == id)
+        //if (g.OpenPopupStack[current_stacold_size].PopupId == id)
         //    FocusWindow(parent_window);
     }
 }
@@ -9305,8 +9305,8 @@ ImGuiWindowSettings* ImGui::CreateNewWindowSettings(const char* name)
     const size_t name_len = strlen(name);
 
     // Allocate chunk
-    const size_t chunk_size = sizeof(ImGuiWindowSettings) + name_len + 1;
-    ImGuiWindowSettings* settings = g.SettingsWindows.alloc_chunk(chunk_size);
+    const size_t chunold_size = sizeof(ImGuiWindowSettings) + name_len + 1;
+    ImGuiWindowSettings* settings = g.SettingsWindows.alloc_chunk(chunold_size);
     IM_PLACEMENT_NEW(settings) ImGuiWindowSettings();
     settings->ID = ImHashStr(name, name_len);
     memcpy(settings->GetName(), name, name_len + 1);   // Store with zero terminator
