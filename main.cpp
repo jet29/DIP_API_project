@@ -77,7 +77,8 @@ int main(int argc, char const *argv[])
 {
     dimg api;
     api.init();
-    //api.dimg_negative("./zelda.jpg", "./output_negative_GPU.jpg", DIMG_HARDWARE_ACCELERATION);
+    
+    api.dimg_negative("./zelda.jpg", "./output_negative_GPU.jpg", DIMG_HARDWARE_ACCELERATION);
     //api.dimg_negative("./zelda.jpg","./output_negative_CPU.jpg",DIMG_CPU_ONLY);
     //api.dimg_grayscale("./zelda.jpg", "./output_grayscale_GPU.jpg", DIMG_HARDWARE_ACCELERATION);
     //api.dimg_grayscale("./zelda.jpg", "./output_grayscale_CPU.jpg", DIMG_CPU_ONLY);
@@ -109,14 +110,16 @@ int main(int argc, char const *argv[])
     //int dpi;
     //api.dimg_image_dpi("./zelda.jpg", dpi);
     //std::cout << "dpi: " << dpi << std::endl;
-    //api.dimg_terminate();
+    
     /*float kernel[] = { 1, 1,
                       -1,-1 };
     api.dimg_custom_filter("./zelda.jpg", "./output_custom_GPU.jpg", 2, 2, kernel, DIMG_HARDWARE_ACCELERATION);
     api.dimg_custom_filter("./zelda.jpg", "./output_custom_CPU.jpg", 2, 2, kernel, DIMG_CPU_ONLY);*/
 
 
-    printBenchmark(api);
+    //printBenchmark(api);
+
+    api.dimg_terminate();
 
     return 0;
 }

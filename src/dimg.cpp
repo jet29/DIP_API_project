@@ -172,41 +172,43 @@ bool dimg::createTexture2D(IMGDATA img, unsigned int &id) {
 }
 
 Shader* setShader(DIMGenum type) {
-    Shader* shader = new Shader("src/shaders/basic.vert", "src/shaders/basic.frag");
+    Shader* shader;
     switch (type) {
-    case DIMG_NEGATIVE:
-        shader = new Shader("src/shaders/negative.vert", "src/shaders/negative.frag");
-        break;
-    case DIMG_GRAYSCALE:
-        shader = new Shader("src/shaders/grayscale.vert", "src/shaders/grayscale.frag");
-        break;
-    case DIMG_BLACK_AND_WHITE:
-        shader = new Shader("src/shaders/blackandwhite.vert", "src/shaders/blackandwhite.frag");
-        break;
-    case DIMG_MEAN_BLUR:
-        shader = new Shader("src/shaders/mean.vert", "src/shaders/mean.frag");
-        break;
-    case DIMG_MEDIAN:
-        shader = new Shader("src/shaders/median.vert", "src/shaders/median.frag");
-        break;
-    case DIMG_SOBEL_EDGE_DETECTION:
-        shader = new Shader("src/shaders/sobel.vert", "src/shaders/sobel.frag");
-        break;
-    case DIMG_ROBERTS_EDGE_DETECTION:
-        shader = new Shader("src/shaders/roberts.vert", "src/shaders/roberts.frag");
-        break;
-    case DIMG_PREWITT_EDGE_DETECTION:
-        shader = new Shader("src/shaders/prewitt.vert", "src/shaders/prewitt.frag");
-        break;
-    case DIMG_LOG_EDGE_DETECTION:
-        shader = new Shader("src/shaders/log.vert", "src/shaders/log.frag");
-        break;
-    case DIMG_TOON_SHADING:
-        shader = new Shader("src/shaders/toonshading.vert", "src/shaders/toonshading.frag");
-        break;
-    case DIMG_CUSTOM_KERNEL:
-        shader = new Shader("src/shaders/customkernel.vert", "src/shaders/customkernel.frag");
-        break;
+        case DIMG_NEGATIVE:
+            shader = new Shader("src/shaders/negative.vert", "src/shaders/negative.frag");
+            break;
+        case DIMG_GRAYSCALE:
+            shader = new Shader("src/shaders/grayscale.vert", "src/shaders/grayscale.frag");
+            break;
+        case DIMG_BLACK_AND_WHITE:
+            shader = new Shader("src/shaders/blackandwhite.vert", "src/shaders/blackandwhite.frag");
+            break;
+        case DIMG_MEAN_BLUR:
+            shader = new Shader("src/shaders/mean.vert", "src/shaders/mean.frag");
+            break;
+        case DIMG_MEDIAN:
+            shader = new Shader("src/shaders/median.vert", "src/shaders/median.frag");
+            break;
+        case DIMG_SOBEL_EDGE_DETECTION:
+            shader = new Shader("src/shaders/sobel.vert", "src/shaders/sobel.frag");
+            break;
+        case DIMG_ROBERTS_EDGE_DETECTION:
+            shader = new Shader("src/shaders/roberts.vert", "src/shaders/roberts.frag");
+            break;
+        case DIMG_PREWITT_EDGE_DETECTION:
+            shader = new Shader("src/shaders/prewitt.vert", "src/shaders/prewitt.frag");
+            break;
+        case DIMG_LOG_EDGE_DETECTION:
+            shader = new Shader("src/shaders/log.vert", "src/shaders/log.frag");
+            break;
+        case DIMG_TOON_SHADING:
+            shader = new Shader("src/shaders/toonshading.vert", "src/shaders/toonshading.frag");
+            break;
+        case DIMG_CUSTOM_KERNEL:
+            shader = new Shader("src/shaders/customkernel.vert", "src/shaders/customkernel.frag");
+            break;
+        default:
+            shader = new Shader("src/shaders/basic.vert", "src/shaders/basic.frag");
     }
     // Send image to GPU
     shader->setInt("image", 0);
@@ -526,7 +528,7 @@ void dimg::setKernel(DIMGenum type, std::vector<float> &gx, std::vector<float> &
     }
 }
 
-void dimg::setKernel(DIMGenum type, std::vector<float>& gx, float sigma, int kernelWidth, int kernelHeight) {
+void dimg::setKernel(DIMGenum type,std::vector<float>& gx, float sigma, int kernelWidth, int kernelHeight) {
     //CPU Kernel for LOG
     gx = std::vector<float>(49, 0.0f);
     glm::ivec2 pivot;
