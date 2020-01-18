@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="src\glad.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shader.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\dimg.cpp" />
+    <ClCompile Include="src\UserInterface.cpp" />
+    <ClCompile Include="src\ImGui\imgui.cpp" />
+    <ClCompile Include="src\ImGui\imgui_demo.cpp" />
+    <ClCompile Include="src\ImGui\imgui_draw.cpp" />
+    <ClCompile Include="src\ImGui\imgui_impl_glfw.cpp" />
+    <ClCompile Include="src\ImGui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="src\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="src\stb_image.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="assets\shaders\basic.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\basic.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\negative.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\negative.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\blackandwhite.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\blackandwhite.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\grayscale.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\grayscale.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\kernelTest.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\kernelTest.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\sobel.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\sobel.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="assets\shaders\mean.frag" />
+    <None Include="assets\shaders\mean.vert" />
+    <None Include="assets\shaders\prewitt.frag" />
+    <None Include="assets\shaders\prewitt.vert" />
+    <None Include="assets\shaders\roberts.frag" />
+    <None Include="assets\shaders\roberts.vert" />
+    <None Include="assets\shaders\median.frag" />
+    <None Include="assets\shaders\median.vert" />
+    <None Include="assets\shaders\gaussianLaplace.frag" />
+    <None Include="assets\shaders\gaussianLaplace.vert" />
+    <None Include="assets\shaders\toonshading.frag" />
+    <None Include="assets\shaders\toonshading.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{d25db7a1-6b27-4eb5-8805-9b71776eb7ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{ac979e9e-b3c5-498e-8489-80fa404892d3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Shader.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\dimg.h" />
+    <ClInclude Include="src\UserInterface.h" />
+    <ClInclude Include="src\ImGui\imconfig.h" />
+    <ClInclude Include="src\ImGui\imgui.h" />
+    <ClInclude Include="src\ImGui\imgui_impl_glfw.h" />
+    <ClInclude Include="src\ImGui\imgui_impl_opengl3.h" />
+    <ClInclude Include="src\ImGui\imgui_internal.h" />
+    <ClInclude Include="src\ImGui\imstb_rectpack.h" />
+    <ClInclude Include="src\ImGui\imstb_textedit.h" />
+    <ClInclude Include="src\ImGui\imstb_truetype.h" />
+    <ClInclude Include="src\stb_image_write.h" />
+  </ItemGroup>
+</Project>

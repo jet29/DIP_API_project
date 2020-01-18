@@ -160,4 +160,3 @@ private:
 	bool linkProgram(unsigned int vertexShaderID, unsigned int fragmentShaderID, unsigned int geometryShaderID);
 };
 
-
