@@ -1,3 +1,2 @@
-# Ignore visual studio metafiles
-.vs
-./Debug
+# .vs
+.vs/
